@@ -229,12 +229,6 @@ function SidebarContent({
         )}
       </nav>
 
-      <div className="px-4 py-3 border-t border-slate-800/80">
-        <div className="rounded-xl bg-gradient-to-r from-violet-500/10 via-transparent to-cyan-500/10 border border-slate-800/80 px-3 py-2.5 text-[11px] text-slate-400 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          {sections.reduce((a, s) => a + s.topics.length, 0)} visualizers ready
-        </div>
-      </div>
     </div>
   )
 }
