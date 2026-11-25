@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/ui/page-header'
+import { motion } from 'framer-motion'
 import { useMemo, useState } from 'react'
 import { Plus, Search, Trash2, RotateCcw } from 'lucide-react'
 
@@ -114,15 +116,15 @@ export default function HashingVisualizer() {
   }, [table, size, mode])
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-white">Hashing Visualizer</h1><p className="text-slate-400 mt-1">Explore hash functions, collisions, and collision resolution strategies.</p></div>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+      <PageHeader title="Hashing Visualizer" description="Explore hash functions, collisions, and collision resolution strategies." />
       <div className="flex flex-wrap gap-2 mb-5">
         {([['chaining','Chaining'],['linear','Linear Probing'],['quadratic','Quadratic Probing']] as [Mode,string][]).map(([m,label])=>(
           <button key={m} onClick={()=>reset(m,size)} className={`px-4 py-2 rounded-full text-sm border ${mode===m?'bg-violet-500/20 text-violet-200 border-violet-500/40':'bg-slate-800/60 text-slate-300 border-slate-700'}`}>{label}</button>
         ))}
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-5">
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5">
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5">
           <div className="flex flex-wrap gap-3 items-end mb-4">
             <div><label className="text-xs text-slate-400 block mb-1">Key</label><input value={input} onChange={e=>setInput(e.target.value)} className="w-24 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" /></div>
             <div><label className="text-xs text-slate-400 block mb-1">Table size</label><input type="number" min={3} max={15} value={size} onChange={e=>{const s=Math.max(3,Math.min(15,Math.round(Number(e.target.value)||7))); setSize(s); reset(mode,s)}} className="w-20 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" /></div>
@@ -158,13 +160,13 @@ export default function HashingVisualizer() {
           </div>
         </div>
         <div className="space-y-4">
-          <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 text-sm text-slate-400 space-y-2">
+          <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 text-sm text-slate-400 space-y-2">
             <h3 className="text-white font-semibold">Hash Info</h3>
             <p><span className="text-slate-300">Hash function:</span> h(k) = k mod {size}</p>
             <p><span className="text-slate-300">Strategy:</span> {mode==='chaining'?'Chaining':mode==='linear'?'Linear Probing (h(k)+i)%m':'Quadratic Probing (h(k)+i²)%m'}</p>
             <p><span className="text-slate-300">Load factor:</span> {loadFactor}</p>
           </div>
-          <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 text-sm text-slate-400 space-y-2">
+          <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 text-sm text-slate-400 space-y-2">
             <h3 className="text-white font-semibold">Collision Resolution</h3>
             <p><span className="text-slate-300">Chaining:</span> store colliding keys in a bucket list.</p>
             <p><span className="text-slate-300">Linear probing:</span> try next slots sequentially.</p>
@@ -172,6 +174,6 @@ export default function HashingVisualizer() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/ui/page-header'
+import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { Play, Pause, StepBack, StepForward, RotateCcw } from 'lucide-react'
 
@@ -55,15 +57,15 @@ export default function MSTVisualizer() {
   const run=(m:Mode)=>{ setMode(m); setSteps(m==='prim'?prim():kruskal()); setI(0); setPlaying(true) }
   const inMST=(e:E)=>s.mst.includes(ek(e.a,e.b))
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-white">Minimum Spanning Tree</h1><p className="text-slate-400 mt-1">Visualize Prim’s and Kruskal’s algorithms.</p></div>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+      <PageHeader title="Minimum Spanning Tree" description="Visualize Prim’s and Kruskal’s algorithms." />
       <div className="flex gap-2 mb-4">
         <button onClick={()=>run('prim')} className={`px-4 py-2 rounded-lg text-sm border ${mode==='prim'?'bg-violet-500/20 text-violet-200 border-violet-500/40':'bg-slate-800 text-slate-300 border-slate-700'}`}>Prim's</button>
         <button onClick={()=>run('kruskal')} className={`px-4 py-2 rounded-lg text-sm border ${mode==='kruskal'?'bg-cyan-500/20 text-cyan-200 border-cyan-500/40':'bg-slate-800 text-slate-300 border-slate-700'}`}>Kruskal's</button>
       </div>
-      <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5">
+      <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5">
         <div className="text-sm text-slate-300 mb-3">Step {i+1}/{steps.length} — {s.description}</div>
-        <div className="bg-[#0c1324] border border-slate-800 rounded-lg overflow-x-auto">
+        <div className="bg-[#0c1324]/80 border border-slate-700/60 rounded-lg backdrop-blur-sm overflow-x-auto">
           <svg viewBox="0 0 620 420" className="w-full h-auto" style={{minWidth:320}}>
             {EDGES.map((e,idx)=>{ const a=NODES.find(n=>n.id===e.a)!, b=NODES.find(n=>n.id===e.b)!; const k=ek(e.a,e.b); const active=s.edge===k; const mst=inMST(e); return <g key={idx}><line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={mst?'#22c55e':active?'#f59e0b':'#334155'} strokeWidth={mst?4:active?3:2}/><text x={(a.x+b.x)/2} y={(a.y+b.y)/2-6} fill={mst?'#86efac':active?'#fde68a':'#94a3b8'} fontSize="11" textAnchor="middle">{e.w}</text></g> })}
             {NODES.map(n=>{ const vis=s.visited.includes(n.id); const active=s.active===n.id; return <g key={n.id}><circle cx={n.x} cy={n.y} r="22" fill={active?'#78350f':vis||s.mst.length>0&&mode==='kruskal'?'#1e293b':'#1e293b'} stroke={active?'#f59e0b':vis?'#22c55e':'#475569'} strokeWidth="2.5"/><text x={n.x} y={n.y+1} textAnchor="middle" dominantBaseline="middle" fill="#e2e8f0" fontSize="14" fontWeight="700">{n.id}</text></g> })}
@@ -77,6 +79,6 @@ export default function MSTVisualizer() {
           <span className="ml-auto text-sm text-slate-400">MST weight: <span className="text-white font-semibold">{s.total}</span></span>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

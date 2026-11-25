@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/ui/page-header'
+import { motion } from 'framer-motion'
 import { useMemo, useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 
@@ -47,9 +49,9 @@ export default function ExpressionTreeVisualizer() {
   const inO=inorder(root), preO=preorder(root), postO=postorder(root)
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-white">Expression Tree</h1><p className="text-slate-400 mt-1">Build expression trees and view inorder, preorder, and postorder traversals.</p></div>
-      <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-5 mb-5">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+      <PageHeader title="Expression Tree" description="Build expression trees and view inorder, preorder, and postorder traversals." />
+      <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-5 mb-5">
         <div className="flex flex-wrap gap-2 mb-4">
           <button onClick={()=>setMode('postfix')} className={`px-4 py-2 rounded-full text-sm border ${mode==='postfix'?'bg-violet-500/20 text-violet-200 border-violet-500/40':'bg-slate-800/60 text-slate-300 border-slate-700'}`}>Postfix</button>
           <button onClick={()=>setMode('prefix')} className={`px-4 py-2 rounded-full text-sm border ${mode==='prefix'?'bg-violet-500/20 text-violet-200 border-violet-500/40':'bg-slate-800/60 text-slate-300 border-slate-700'}`}>Prefix</button>
@@ -60,7 +62,7 @@ export default function ExpressionTreeVisualizer() {
           <button onClick={()=>{ setExpr(mode==='postfix'?'A B + C D - *':'* + A B - C D'); }} className="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-sm flex gap-1 items-center"><RotateCcw size={15}/>Example</button>
         </div>
         <div className="text-sm text-slate-300 mb-3">{msg}</div>
-        <div className="bg-[#0c1324] border border-slate-800 rounded-lg overflow-x-auto">
+        <div className="bg-[#0c1324]/80 border border-slate-700/60 rounded-lg backdrop-blur-sm overflow-x-auto">
           {root ? <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" style={{minWidth:320}}>
             {edges.map(([a,b],i)=>{ const A=nodes.find(n=>n.id===a)!, B=nodes.find(n=>n.id===b)!; return <line key={i} x1={xFor(A.x)} y1={yFor(A.y)} x2={xFor(B.x)} y2={yFor(B.y)} stroke="#475569" strokeWidth="2"/> })}
             {nodes.map(n=>{ const op=isOp(n.v); return <g key={n.id}><circle cx={xFor(n.x)} cy={yFor(n.y)} r="24" fill={op?'#3b2a12':'#1e293b'} stroke={op?'#f59e0b':'#6366f1'} strokeWidth="2.5"/><text x={xFor(n.x)} y={yFor(n.y)+1} textAnchor="middle" dominantBaseline="middle" fill="#e2e8f0" fontSize="14" fontWeight="700">{n.v}</text></g> })}
@@ -68,10 +70,10 @@ export default function ExpressionTreeVisualizer() {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4"><div className="text-white font-semibold mb-2 text-sm">Inorder</div><div className="font-mono text-sm text-slate-300 bg-slate-900 border border-slate-700 rounded p-2">{inO.join(' ')||'—'}</div></div>
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4"><div className="text-white font-semibold mb-2 text-sm">Preorder</div><div className="font-mono text-sm text-slate-300 bg-slate-900 border border-slate-700 rounded p-2">{preO.join(' ')||'—'}</div></div>
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4"><div className="text-white font-semibold mb-2 text-sm">Postorder</div><div className="font-mono text-sm text-slate-300 bg-slate-900 border border-slate-700 rounded p-2">{postO.join(' ')||'—'}</div></div>
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4"><div className="text-white font-semibold mb-2 text-sm">Inorder</div><div className="font-mono text-sm text-slate-300 bg-slate-900 border border-slate-700 rounded p-2">{inO.join(' ')||'—'}</div></div>
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4"><div className="text-white font-semibold mb-2 text-sm">Preorder</div><div className="font-mono text-sm text-slate-300 bg-slate-900 border border-slate-700 rounded p-2">{preO.join(' ')||'—'}</div></div>
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4"><div className="text-white font-semibold mb-2 text-sm">Postorder</div><div className="font-mono text-sm text-slate-300 bg-slate-900 border border-slate-700 rounded p-2">{postO.join(' ')||'—'}</div></div>
       </div>
-    </div>
+    </motion.div>
   )
 }

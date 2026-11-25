@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/ui/page-header'
+import { motion } from 'framer-motion'
 import { useEffect, useMemo, useState } from 'react'
 import { Play, RotateCcw } from 'lucide-react'
 
@@ -92,9 +94,9 @@ function RecursionInner({ n, tree, steps, stepIdx, setStepIdx, playing, setPlayi
   const yFor = (y: number) => 50 + y * 90
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-white">Recursion Tree Visualizer</h1><p className="text-slate-400 mt-1">See how recursive calls branch out and unwind. Example: Fibonacci.</p></div>
-      <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5 mb-5">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+      <PageHeader title="Recursion Tree Visualizer" description="See how recursive calls branch out and unwind. Example: Fibonacci." />
+      <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5 mb-5">
         <div className="flex flex-wrap gap-3 items-center mb-4">
           <label className="text-sm text-slate-300">n =</label>
           <select value={n} onChange={e => reset(Number(e.target.value))} className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200">
@@ -105,7 +107,7 @@ function RecursionInner({ n, tree, steps, stepIdx, setStepIdx, playing, setPlayi
           <span className="ml-auto text-sm text-slate-400">Step {stepIdx+1}/{steps.length}</span>
         </div>
         <div className="text-sm text-slate-300 mb-3">{step?.description}</div>
-        <div className="bg-[#0c1324] border border-slate-800 rounded-lg overflow-x-auto mb-4">
+        <div className="bg-[#0c1324]/80 border border-slate-700/60 rounded-lg backdrop-blur-sm overflow-x-auto mb-4">
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" style={{minWidth:340}}>
             {edges.map((e: any, i: number) => { const a=nodes.find((x:RNode)=>x.id===e.from), b=nodes.find((x:RNode)=>x.id===e.to); if(!a||!b) return null; return <line key={i} x1={a.x} y1={yFor(a.y)} x2={b.x} y2={yFor(b.y)} stroke="#475569" strokeWidth="2" /> })}
             {nodes.map((nd: RNode) => {
@@ -140,6 +142,6 @@ function RecursionInner({ n, tree, steps, stepIdx, setStepIdx, playing, setPlayi
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/ui/page-header'
+import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { Play, Pause, StepBack, StepForward, RotateCcw, Plus, Trash2 } from 'lucide-react'
 
@@ -198,11 +200,8 @@ export default function HeapVisualizer() {
   const displayHeap = step?.heap ?? heap
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white">Binary Heap Visualizer</h1>
-        <p className="text-slate-400 mt-1">Explore Min/Max heaps with insert and extract-root animations.</p>
-      </div>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+      <PageHeader title="Binary Heap Visualizer" description="Explore Min/Max heaps with insert and extract-root animations." />
 
       <div className="flex flex-wrap gap-2 mb-5">
         <button onClick={() => reset('max')} className={`px-4 py-2 rounded-lg text-sm font-medium border ${type==='max' ? 'bg-amber-500/20 text-amber-200 border-amber-500/40' : 'bg-slate-800/60 text-slate-300 border-slate-700'}`}>Max Heap (Max at Root)</button>
@@ -210,7 +209,7 @@ export default function HeapVisualizer() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-5">
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5">
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <input value={input} onChange={e => setInput(e.target.value)} className="w-28 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" placeholder="Value" />
             <button onClick={onInsert} className="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm flex items-center gap-1.5"><Plus size={16}/> Insert</button>
@@ -242,7 +241,7 @@ export default function HeapVisualizer() {
         </div>
 
         <div className="space-y-5">
-          <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5">
+          <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5">
             <h3 className="text-white font-semibold mb-3">Array View</h3>
             <div className="flex flex-wrap gap-2">
               {displayHeap.map((v, i) => {
@@ -261,7 +260,7 @@ export default function HeapVisualizer() {
               {displayHeap.length === 0 && <span className="text-slate-500 text-sm">Empty</span>}
             </div>
           </div>
-          <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5 text-sm text-slate-400 space-y-2">
+          <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5 text-sm text-slate-400 space-y-2">
             <h3 className="text-white font-semibold">Heap Properties</h3>
             <p><span className="text-slate-300">Type:</span> {type === 'min' ? 'Min Heap — parent ≤ children' : 'Max Heap — parent ≥ children'}</p>
             <p><span className="text-slate-300">Root:</span> {type === 'min' ? 'Minimum element' : 'Maximum element'}</p>
@@ -270,6 +269,6 @@ export default function HeapVisualizer() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

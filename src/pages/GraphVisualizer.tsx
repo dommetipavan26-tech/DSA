@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/ui/page-header'
+import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { Play, Pause, StepBack, StepForward, RotateCcw } from 'lucide-react'
 
@@ -82,9 +84,9 @@ export default function GraphVisualizer() {
   const isCurrent = (id: string) => step.current === id
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-white">Graph Traversals (BFS & DFS)</h1><p className="text-slate-400 mt-1">Explore BFS and DFS on an undirected graph.</p></div>
-      <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5 mb-5">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+      <PageHeader title="Graph Traversals (BFS & DFS)" description="Explore BFS and DFS on an undirected graph." />
+      <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5 mb-5">
         <div className="flex flex-wrap gap-3 items-center mb-4">
           <div className="flex gap-2">
             <button onClick={()=>run('bfs',start)} className={`px-4 py-2 rounded-lg text-sm font-medium border ${mode==='bfs'?'bg-violet-500/20 text-violet-200 border-violet-500/40':'bg-slate-800 text-slate-300 border-slate-700'}`}>BFS</button>
@@ -104,7 +106,7 @@ export default function GraphVisualizer() {
           </div>
         </div>
         <div className="text-sm text-slate-300 mb-3">Step {stepIdx+1}/{steps.length} — {step.description}</div>
-        <div className="bg-[#0c1324] border border-slate-800 rounded-lg overflow-x-auto">
+        <div className="bg-[#0c1324]/80 border border-slate-700/60 rounded-lg backdrop-blur-sm overflow-x-auto">
           <svg viewBox="0 0 600 420" className="w-full h-auto max-h-[460px]" style={{minWidth:320}}>
             {EDGES.map((e,i)=>{
               const a=NODES.find(n=>n.id===e.from)!, b=NODES.find(n=>n.id===e.to)!
@@ -133,9 +135,9 @@ export default function GraphVisualizer() {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4"><h3 className="text-white font-semibold mb-2">Traversal Order</h3><div className="text-sm font-mono text-slate-300 bg-slate-900 border border-slate-700 rounded-lg p-3 min-h-[48px]">{step.order.length?step.order.join(' → '):<span className="text-slate-500">—</span>}</div></div>
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 text-sm text-slate-400"><h3 className="text-white font-semibold mb-2">{mode==='bfs'?'Breadth-First Search':'Depth-First Search'}</h3>{mode==='bfs'?'Explores level by level using a queue. Good for shortest paths in unweighted graphs. Time O(V+E).':'Explores as deep as possible before backtracking. Uses a stack (recursion). Time O(V+E).'}</div>
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4"><h3 className="text-white font-semibold mb-2">Traversal Order</h3><div className="text-sm font-mono text-slate-300 bg-slate-900 border border-slate-700 rounded-lg p-3 min-h-[48px]">{step.order.length?step.order.join(' → '):<span className="text-slate-500">—</span>}</div></div>
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 text-sm text-slate-400"><h3 className="text-white font-semibold mb-2">{mode==='bfs'?'Breadth-First Search':'Depth-First Search'}</h3>{mode==='bfs'?'Explores level by level using a queue. Good for shortest paths in unweighted graphs. Time O(V+E).':'Explores as deep as possible before backtracking. Uses a stack (recursion). Time O(V+E).'}</div>
       </div>
-    </div>
+    </motion.div>
   )
 }
