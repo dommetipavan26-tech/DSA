@@ -92,24 +92,22 @@ export default function Layout() {
       </AnimatePresence>
 
       <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Top bar with toggle */}
-        <div className="sticky top-0 z-20 flex items-center h-14 px-3 bg-[#0b1020]/80 backdrop-blur-md border-b border-slate-800/40">
-          <div className="relative group">
-            <button
-              onClick={() => setOpen((v) => !v)}
-              className="w-10 h-10 rounded-full flex items-center justify-center text-[#c4c7c5] hover:bg-[rgba(255,255,255,0.08)] transition-colors duration-200 cursor-pointer"
-              aria-label={open ? 'Collapse menu' : 'Expand menu'}
-              aria-expanded={open}
-              type="button"
-            >
-              <SidebarToggleIcon className="w-[22px] h-[22px]" />
-            </button>
-            <div
-              role="tooltip"
-              className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-2 px-2.5 py-1.5 rounded-md bg-[#3c4043] text-white text-[12px] leading-none whitespace-nowrap opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150 delay-150 shadow-lg"
-            >
-              {open ? 'Collapse menu' : 'Expand menu'}
-            </div>
+        {/* Sidebar toggle */}
+        <div className="fixed top-3 left-3 z-50 group">
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-[#c4c7c5] hover:bg-[rgba(255,255,255,0.08)] transition-colors duration-200 cursor-pointer"
+            aria-label={open ? 'Collapse menu' : 'Expand menu'}
+            aria-expanded={open}
+            type="button"
+          >
+            <SidebarToggleIcon className="w-[22px] h-[22px]" />
+          </button>
+          <div
+            role="tooltip"
+            className="pointer-events-none absolute left-0 top-full mt-2 px-2.5 py-1.5 rounded-md bg-[#3c4043] text-white text-[12px] leading-none whitespace-nowrap opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150 delay-150 shadow-lg"
+          >
+            {open ? 'Collapse menu' : 'Expand menu'}
           </div>
         </div>
 
