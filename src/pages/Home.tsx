@@ -73,7 +73,6 @@ export default function Home() {
                 <h2 className="text-xl sm:text-2xl font-semibold text-white">{sec.title}</h2>
                 <div className="h-1 w-16 mt-2 rounded-full bg-gradient-to-r from-violet-500 to-cyan-400" />
               </div>
-              <span className="text-sm text-slate-500">{sec.topics.length} topic{sec.topics.length > 1 ? 's' : ''}</span>
             </motion.div>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {sec.topics.map((t) => {
