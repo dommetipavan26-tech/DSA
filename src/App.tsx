@@ -4,18 +4,16 @@ import {
   ArrowRight,
   BarChart3,
   Binary,
-  BookOpen,
   GitBranch,
   Layers,
   Menu,
   Network,
   Search,
-  Sparkles,
   X,
 } from "lucide-react";
 import { CATEGORIES, TOPICS, type CategoryId, type TopicId } from "./data/syllabus";
-import { DotPattern, MagicCard, NumberTicker, ShimmerButton } from "./components/ui/magic-ui";
-import { BlurText, ClickSpark, ShinyText, SpotlightCard } from "./components/ui/react-bits";
+import { DotPattern, MagicCard, NumberTicker } from "./components/ui/magic-ui";
+import { BlurText, ClickSpark } from "./components/ui/react-bits";
 import { AnimatedGroup } from "./components/ui/motion-primitives";
 import { MorphingPillTabs } from "./components/ui/primitives-21st";
 import { renderAnalysisTopic } from "./visualizers/AnalysisVisualizer";
@@ -120,9 +118,6 @@ export function App() {
               </div>
               <div className="flex items-center">
                 <span className="text-sm font-bold tracking-tight text-white">DSA Studio</span>
-                <span className="ml-2 hidden rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-slate-400 sm:inline-block">
-                  CSE2001
-                </span>
               </div>
             </button>
           </div>
@@ -158,11 +153,6 @@ export function App() {
             })}
           </nav>
 
-          <div className="hidden shrink-0 items-center gap-2 whitespace-nowrap text-xs text-slate-400 xl:flex">
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300">
-              No Login · Offline Ready
-            </span>
-          </div>
         </header>
 
         {/* Mobile Overlay */}
@@ -247,11 +237,6 @@ export function App() {
                   <div className="relative overflow-hidden rounded-2xl border border-white/[0.09] bg-[#10131e] px-6 py-10 sm:px-10">
                     <DotPattern className="opacity-50 [mask-image:radial-gradient(ellipse_at_center,white_35%,transparent_80%)]" />
                     <div className="relative z-10 max-w-3xl space-y-4">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-medium">
-                        <BookOpen className="h-3.5 w-3.5 text-violet-400" />
-                        <ShinyText text="CSE2001 Data Structures & Algorithms · Student Guide" />
-                      </div>
-
                       <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
                         <BlurText text="Understand Every Algorithm Step-by-Step With Your Own Inputs" />
                       </h1>
@@ -262,39 +247,13 @@ export function App() {
                         you enter custom values and step through how it executes.
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-3 pt-1">
-                        <ShimmerButton onClick={() => navigateTopic("quick-sort")}>
-                          Open Sorting Visualizer
-                          <ArrowRight className="h-4 w-4" />
-                        </ShimmerButton>
-                        <button
-                          type="button"
-                          onClick={() => navigateTopic("avl")}
-                          className="rounded-lg border border-white/[0.12] bg-[#161a29] px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-violet-400/50 hover:text-white cursor-pointer"
-                        >
-                          Explore AVL Rotations
-                        </button>
-                      </div>
-
                       {/* Stats with NumberTicker */}
-                      <div className="grid max-w-lg grid-cols-3 gap-4 border-t border-white/[0.08] pt-5">
+                      <div className="max-w-lg border-t border-white/[0.08] pt-5">
                         <div>
                           <div className="font-mono text-2xl font-bold text-white">
                             <NumberTicker value={TOPICS.length} />
                           </div>
                           <div className="text-xs text-slate-400">Interactive Visualizers</div>
-                        </div>
-                        <div>
-                          <div className="font-mono text-2xl font-bold text-violet-300">
-                            <NumberTicker value={6} />
-                          </div>
-                          <div className="text-xs text-slate-400">CSE2001 Modules</div>
-                        </div>
-                        <div>
-                          <div className="font-mono text-2xl font-bold text-emerald-300">
-                            <NumberTicker value={100} suffix="%" />
-                          </div>
-                          <div className="text-xs text-slate-400">Custom User Input</div>
                         </div>
                       </div>
                     </div>
@@ -331,9 +290,6 @@ export function App() {
                             <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-[#171c2b]">
                               {CATEGORY_ICON[topic.category]}
                             </div>
-                            <span className="font-mono text-[11px] font-medium text-slate-400">
-                              {topic.moduleTag}
-                            </span>
                           </div>
                           <ArrowRight className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:text-violet-300" />
                         </div>
@@ -355,23 +311,6 @@ export function App() {
                     ))}
                   </AnimatedGroup>
 
-                  {/* Syllabus Verification Strip */}
-                  <SpotlightCard className="p-5">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <h3 className="text-sm font-semibold text-white">
-                          CSE2001 Syllabus Coverage Verified
-                        </h3>
-                        <p className="text-xs text-slate-400">
-                          Every module & lab topic from CSE2001 (v1.2) plus Floyd-Warshall & Warshall's is included.
-                        </p>
-                      </div>
-                      <span className="inline-flex items-center gap-1 rounded-md border border-violet-500/30 bg-violet-500/10 px-2.5 py-1 font-mono text-xs text-violet-300">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        6/6 Modules Complete
-                      </span>
-                    </div>
-                  </SpotlightCard>
                 </div>
               ) : (
                 <div className="space-y-4">
