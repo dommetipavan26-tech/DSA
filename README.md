@@ -1,37 +1,34 @@
-# DSA Visualizer Lab
+# DSA Studio — Visual Data Structures & Algorithms Explorer
 
-An interactive, student-friendly **Data Structures & Algorithms visualizer** built with React, TypeScript, Vite, and Tailwind CSS. 
+An interactive, student-friendly, zero-login web resource designed for **CSE2001 (Data Structures and Algorithms)** students to explore algorithms step-by-step using their own custom inputs.
+
+## Quick Open (No Setup Required)
+
+- **Open directly in browser**: Double-click `index.html` right in the project root — it is a self-contained single-file production bundle (`dist/index.html` is identical) that runs offline with zero install.
+- **Deploy on GitHub Pages**: Upload to GitHub and enable **Settings → Pages → Deploy from branch (`main` / `(root)`)** — works immediately with no build step needed.
+
 ## Features
 
-- **Sorting Algorithms** — Selection, Insertion, Bubble, Merge, Quick, and Heap Sort with step-by-step animation, speed control, and a heap tree view.
-- **Binary Search Tree** — Build from an array, insert/delete/search nodes, and animate inorder, preorder, and postorder traversals.
-- **Binary Heap** — Min/Max heap with insert and extract-root operations, tree + array views, and heapify animations.
-- **Stack & Queue** — Visualize LIFO push/pop and FIFO enqueue/dequeue.
-- **Linked List** — Singly linked list insert (head/tail/index), delete, and search.
-- **Graph Traversal** — BFS and DFS on an interactive graph with frontier/visited highlighting.
-- **Searching** — Linear Search and Binary Search with pointer movement.
-- **Recursion Tree** — Fibonacci recursion tree with call stack visualization.
+- **Custom User Input Everywhere**: Every visualizer includes a live **User Input & Controls** panel alongside presets and step-by-step Play / Pause / Step Back / Step Forward / Speed playback.
+- **29 Interactive Visualizers Across 6 Modules**:
+  - **Module 1 (Algorithm Analysis)**: Asymptotic Notations (`O`, `Omega`, `Theta`, `o`) growth curve explorer, Recursion vs Iteration call stack (Factorial & Matrix Transpose).
+  - **Module 2 (Linear Data Structures)**: Array/List, Singly/Doubly/Circular Linked Lists, Stack + Postfix Expression Evaluator, Queue, Deque, Priority Queue (Min & Max).
+  - **Module 3 (Trees)**: Tree Fundamentals (Full / Complete / Perfect Binary Tree checker & node inspector), BST Insert/Delete/Search & Traversals (In-order, Pre-order, Post-order), AVL Tree (LL, RR, LR, RL rotations with Balance Factors), Expression & Tree Reconstruction (from Infix/Prefix/Postfix or In-order + Pre/Post-order).
+  - **Module 4 (Sorting)**: Selection Sort, Insertion Sort, Quick Sort (selectable pivot: Last, First, Middle, Random), Merge Sort (Divide-and-Conquer tree + Bar view), Heap Sort (Max-Heap & Min-Heap with synchronized Binary Heap tree).
+  - **Module 5 (Searching & Hashing)**: Linear Search, Binary Search, and Hashing (Division, Mid-Square, Multiplication; Separate Chaining, Linear/Quadratic Probing, Double Hashing, Rehashing, Extendible Hashing).
+  - **Module 6 (Graphs & Connectivity)**: Interactive Graph Builder & Custom Edge List parser (Adjacency Matrix, Adjacency List, Sparse Matrix), BFS, DFS, MST (Prim's & Kruskal's), Dijkstra's Shortest Path, Floyd-Warshall (editable matrix), Warshall's Transitive Closure (toggleable Boolean matrix).
 
-## Getting Started
+## Run & Edit Source Locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Then open the local URL shown in the terminal (default `http://localhost:5173`).
-
-## Build
+## Rebuild Production `index.html`
 
 ```bash
 npm run build
-npm run preview
 ```
 
-## Tech Stack
-
-- React + TypeScript
-- Vite
-- Tailwind CSS
-- React Router
-- Lucide Icons
+Builds `dist/index.html` from `entry.html` + `src/` and updates the root `index.html` automatically.
