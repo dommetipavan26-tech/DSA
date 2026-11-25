@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/ui/page-header'
+import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { Play, Pause, StepBack, StepForward, RotateCcw, Shuffle } from 'lucide-react'
 
@@ -57,14 +59,14 @@ export default function SearchingVisualizer() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-white">Searching Visualizer</h1><p className="text-slate-400 mt-1">Compare Linear and Binary Search step by step.</p></div>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+      <PageHeader title="Searching Visualizer" description="Compare Linear and Binary Search step by step." />
       <div className="flex gap-2 mb-5">
         {(['linear','binary'] as Algo[]).map(a => (
           <button key={a} onClick={()=>setAlgo(a)} className={`px-4 py-2 rounded-full text-sm font-medium border ${algo===a?'bg-violet-500/20 text-violet-200 border-violet-500/40':'bg-slate-800/60 text-slate-300 border-slate-700'}`}>{a==='linear'?'Linear Search':'Binary Search'}</button>
         ))}
       </div>
-      <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5 mb-5">
+      <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5 mb-5">
         <div className="flex flex-wrap gap-3 items-end mb-5">
           <div className="flex-1 min-w-[220px]"><label className="text-xs text-slate-400 block mb-1">Array {algo==='binary'&&'(will be sorted)'}</label><input value={arrStr} onChange={e=>setArrStr(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" /></div>
           <div><label className="text-xs text-slate-400 block mb-1">Target</label><input value={targetStr} onChange={e=>setTargetStr(e.target.value)} className="w-24 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" /></div>
@@ -103,9 +105,9 @@ export default function SearchingVisualizer() {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4"><h3 className="text-white font-semibold mb-2">Linear Search</h3><p className="text-slate-400">Scans each element one by one. Works on unsorted arrays. Time: O(n), Space: O(1).</p></div>
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4"><h3 className="text-white font-semibold mb-2">Binary Search</h3><p className="text-slate-400">Halves the search space each step. Requires a sorted array. Time: O(log n), Space: O(1).</p></div>
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4"><h3 className="text-white font-semibold mb-2">Linear Search</h3><p className="text-slate-400">Scans each element one by one. Works on unsorted arrays. Time: O(n), Space: O(1).</p></div>
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4"><h3 className="text-white font-semibold mb-2">Binary Search</h3><p className="text-slate-400">Halves the search space each step. Requires a sorted array. Time: O(log n), Space: O(1).</p></div>
       </div>
-    </div>
+    </motion.div>
   )
 }

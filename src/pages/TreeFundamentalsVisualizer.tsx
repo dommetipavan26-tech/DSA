@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/ui/page-header'
+import { motion } from 'framer-motion'
 import { useState } from 'react'
 
 type Mode = 'tree' | 'binary' | 'full' | 'complete' | 'perfect'
@@ -39,16 +41,16 @@ export default function TreeFundamentalsVisualizer() {
   const [mode,setMode]=useState<Mode>('binary')
   const cur=modes.find(m=>m.id===mode)!
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-white">Tree Fundamentals & Types</h1><p className="text-slate-400 mt-1">Understand tree structures and common binary tree types.</p></div>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+      <PageHeader title="Tree Fundamentals & Types" description="Understand tree structures and common binary tree types." />
       <div className="flex flex-wrap gap-2 mb-5">
         {modes.map(m=> <button key={m.id} onClick={()=>setMode(m.id)} className={`px-4 py-2 rounded-full text-sm border ${mode===m.id?'bg-violet-500/20 text-violet-200 border-violet-500/40':'bg-slate-800/60 text-slate-300 border-slate-700'}`}>{m.label}</button>)}
       </div>
-      <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-5">
+      <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-5">
         <h2 className="text-white font-semibold text-lg mb-2">{cur.label}</h2>
         <p className="text-slate-400 mb-4">{cur.desc}</p>
-        <div className="bg-[#0c1324] border border-slate-800 rounded-lg p-2"><TreeSVG mode={mode}/></div>
+        <div className="bg-[#0c1324]/80 border border-slate-700/60 rounded-lg backdrop-blur-sm p-2"><TreeSVG mode={mode}/></div>
       </div>
-    </div>
+    </motion.div>
   )
 }

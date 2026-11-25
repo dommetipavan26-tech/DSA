@@ -53,7 +53,10 @@ export default function Layout() {
         </nav>
 
         <div className="px-4 py-4 border-t border-slate-800/80 text-[11px] text-slate-500">
-          Built for learning · Interactive DSA Lab
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            Interactive DSA Lab
+          </div>
         </div>
       </aside>
 

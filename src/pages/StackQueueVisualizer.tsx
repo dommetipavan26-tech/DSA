@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/ui/page-header'
+import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { Plus, Minus, RotateCcw, ArrowRight, ArrowLeft } from 'lucide-react'
 
@@ -33,12 +35,12 @@ export default function StackQueueVisualizer() {
   const Tab = ({m,label}:{m:Mode;label:string}) => <button onClick={()=>reset(m)} className={`px-4 py-2 rounded-full text-sm border ${mode===m?'bg-violet-500/20 text-violet-200 border-violet-500/40':'bg-slate-800/60 text-slate-300 border-slate-700'}`}>{label}</button>
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-white">Stacks & Queues</h1><p className="text-slate-400 mt-1">Stack, Queue, Deque, and Priority Queue with core operations.</p></div>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+      <PageHeader title="Stacks & Queues" description="Stack, Queue, Deque, and Priority Queue with core operations." />
       <div className="flex flex-wrap gap-2 mb-5">
         <Tab m="stack" label="Stack" /><Tab m="queue" label="Queue" /><Tab m="deque" label="Deque" /><Tab m="priority" label="Priority Queue" />
       </div>
-      <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-5">
+      <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-5">
         <p className="text-sm text-slate-300 mb-4 min-h-[40px]">{msg}</p>
         <div className="flex flex-wrap gap-2 mb-5 items-end">
           <div><label className="text-xs text-slate-400 block mb-1">Value</label><input value={val} onChange={e=>setVal(e.target.value)} className="w-24 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" /></div>
@@ -82,6 +84,6 @@ export default function StackQueueVisualizer() {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }

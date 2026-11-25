@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/ui/page-header'
+import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { Plus, Trash2, Search, RotateCcw, ArrowRight, ArrowLeft } from 'lucide-react'
 
@@ -29,12 +31,12 @@ export default function LinearListsVisualizer() {
   const modeLabel: Record<Mode,string> = { array:'List (Array)', singly:'Singly Linked List', doubly:'Doubly Linked List', circular:'Circular Linked List' }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-white">Lists & Linked Lists</h1><p className="text-slate-400 mt-1">Visualize List, Singly, Doubly, and Circular Linked List operations.</p></div>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+      <PageHeader title="Lists & Linked Lists" description="Visualize List, Singly, Doubly, and Circular Linked List operations." />
       <div className="flex flex-wrap gap-2 mb-5">
         {(Object.keys(modeLabel) as Mode[]).map(m => <button key={m} onClick={()=>reset(m)} className={`px-4 py-2 rounded-full text-sm border ${mode===m?'bg-violet-500/20 text-violet-200 border-violet-500/40':'bg-slate-800/60 text-slate-300 border-slate-700'}`}>{modeLabel[m]}</button>)}
       </div>
-      <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-5 mb-5">
+      <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-5 mb-5">
         <div className="flex flex-wrap gap-3 items-end mb-4">
           <div><label className="text-xs text-slate-400 block mb-1">Value</label><input value={val} onChange={e=>setVal(e.target.value)} className="w-24 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" /></div>
           <div><label className="text-xs text-slate-400 block mb-1">Index</label><input value={idx} onChange={e=>setIdx(e.target.value)} className="w-20 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" /></div>
@@ -77,13 +79,13 @@ export default function LinearListsVisualizer() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-5 text-sm text-slate-400">
+      <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-5 text-sm text-slate-400">
         <h3 className="text-white font-semibold mb-2">{modeLabel[mode]}</h3>
         {mode==='array' && <p>Array/list stores elements contiguously. Index access is O(1), but middle inserts/deletes require shifting elements.</p>}
         {mode==='singly' && <p>Each node stores data and a next pointer. Insert/delete at head is O(1); search is O(n).</p>}
         {mode==='doubly' && <p>Each node has next and prev pointers, allowing traversal in both directions. Deletion is easier when node reference is known.</p>}
         {mode==='circular' && <p>The last node points back to head, forming a circle. Useful for round-robin scheduling and cyclic traversals.</p>}
       </div>
-    </div>
+    </motion.div>
   )
 }

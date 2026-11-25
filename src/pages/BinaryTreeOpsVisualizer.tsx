@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/ui/page-header'
+import { motion } from 'framer-motion'
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { Play, Pause, StepBack, StepForward, RotateCcw, Plus, Trash2, Search } from 'lucide-react'
 
@@ -302,13 +304,10 @@ export default function BinaryTreeOpsVisualizer() {
   const onTraversal = (k: 'inorder' | 'preorder' | 'postorder') => { const s = genTraversalSteps(root, k); setSteps(s); setStepIdx(0); setPlaying(true); setTraversalOutput([]) }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white">Binary Tree Operations & Traversals</h1>
-        <p className="text-slate-400 mt-1">Insert, delete, search, and animate Inorder/Preorder/Postorder traversals on a binary search tree.</p>
-      </div>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+      <PageHeader title="Binary Tree Operations & Traversals" description="Insert, delete, search, and animate Inorder/Preorder/Postorder traversals on a binary search tree." />
 
-      <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5 mb-5 space-y-4">
+      <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5 mb-5 space-y-4">
         <div className="flex flex-col lg:flex-row gap-3">
           <div className="flex-1">
             <label className="text-xs text-slate-400 mb-1 block">Input array (comma separated)</label>
@@ -339,7 +338,7 @@ export default function BinaryTreeOpsVisualizer() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5 mb-5">
+      <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5 mb-5">
         <div className="flex flex-wrap items-center gap-2 mb-4">
           <button onClick={() => { setPlaying(false); setStepIdx(0) }} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200"><RotateCcw size={18} /></button>
           <button onClick={() => setStepIdx(i => Math.max(0, i-1))} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200"><StepBack size={18} /></button>
@@ -369,7 +368,7 @@ export default function BinaryTreeOpsVisualizer() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5">
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5">
           <h3 className="text-white font-semibold mb-3">Traversals</h3>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => onTraversal('inorder')} className="px-4 py-2 rounded-lg bg-amber-600/20 text-amber-300 border border-amber-500/30 hover:bg-amber-600/30 text-sm">Inorder</button>
@@ -377,13 +376,13 @@ export default function BinaryTreeOpsVisualizer() {
             <button onClick={() => onTraversal('postorder')} className="px-4 py-2 rounded-lg bg-pink-600/20 text-pink-300 border border-pink-500/30 hover:bg-pink-600/30 text-sm">Postorder</button>
           </div>
         </div>
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5">
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5">
           <h3 className="text-white font-semibold mb-3">Traversal Output</h3>
           <div className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-3 min-h-[52px] text-sm font-mono text-slate-200">
             {traversalOutput.length ? traversalOutput.join(' → ') : <span className="text-slate-500">Run a traversal to see the sequence...</span>}
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

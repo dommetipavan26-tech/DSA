@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/ui/page-header'
+import { motion } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Play, Pause, RotateCcw, StepForward, StepBack, Shuffle } from 'lucide-react'
 
@@ -553,11 +555,8 @@ export default function SortingVisualizer() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white">Sorting Visualizer</h1>
-        <p className="text-slate-400 mt-1">Step through sorting algorithms. Merge Sort shows the divide-and-conquer tree; Quick Sort lets you choose the pivot.</p>
-      </div>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+      <PageHeader title="Sorting Visualizer" description="Step through sorting algorithms. Merge Sort shows the divide-and-conquer tree; Quick Sort lets you choose the pivot." />
 
       <div className="flex flex-wrap gap-2 mb-5">
         {ALGOS.map((a) => (
@@ -568,7 +567,7 @@ export default function SortingVisualizer() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_290px] gap-5">
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5">
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
               <div className="text-sm text-slate-400">Step <span className="text-white font-semibold">{stepIdx + 1}</span> / {steps.length}</div>
@@ -577,7 +576,7 @@ export default function SortingVisualizer() {
             <div className="text-xs px-2 py-1 rounded bg-slate-800 text-slate-300">{ALGOS.find(a => a.id === algo)?.name}</div>
           </div>
 
-          <div className="bg-[#0c1324] border border-slate-800 rounded-lg p-2">
+          <div className="bg-[#0c1324]/80 border border-slate-700/60 rounded-lg backdrop-blur-sm p-2">
             {algo === 'merge' ? <MergeTreeView step={step} input={array} /> : algo === 'heap' ? <HeapTreeView step={step} /> : <BarView step={step} maxVal={maxVal} />}
           </div>
 
@@ -615,7 +614,7 @@ export default function SortingVisualizer() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5 space-y-4">
+        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5 space-y-4">
           {algo === 'quick' && (
             <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-3">
               <label className="text-sm font-medium text-violet-200 block mb-2">Choose Pivot Element</label>
@@ -673,6 +672,6 @@ export default function SortingVisualizer() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
