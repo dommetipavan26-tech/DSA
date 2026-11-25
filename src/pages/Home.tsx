@@ -18,20 +18,40 @@ export default function Home() {
       <section className="shimmer-border relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-[#121a33] via-[#10172b] to-[#0c1324] p-8 sm:p-12 mb-12">
         <BackgroundGrid />
         <div className="relative">
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-medium mb-5 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-medium mb-5 backdrop-blur-sm"
+          >
             <Sparkles size={14} /> Interactive DSA Learning
           </motion.div>
           <div className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight mb-5">
             <BlurText text="Data Structures & Algorithms" className="block" delay={0.05} />
-            <motion.span initial={{ opacity: 0, y: 12, filter: 'blur(8px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.5, delay: 0.35 }} className="block text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400">
+            <motion.span
+              initial={{ opacity: 0, y: 12, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ duration: 0.5, delay: 0.35 }}
+              className="block text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400"
+            >
               Visualizer Lab
             </motion.span>
           </div>
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.1 }} className="text-slate-400 max-w-2xl text-base sm:text-lg leading-relaxed mb-8">
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.1 }}
+            className="text-slate-400 max-w-2xl text-base sm:text-lg leading-relaxed mb-8"
+          >
             Explore core DSA concepts through interactive, step-by-step visualizations.
             Build structures, trace algorithms, and understand how they really work.
           </motion.p>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.15 }} className="flex flex-wrap gap-3 text-sm">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.15 }}
+            className="flex flex-wrap gap-3 text-sm"
+          >
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700/60 text-slate-300"><BookOpen size={16} className="text-violet-400" /> {topics.length} visualizers</div>
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700/60 text-slate-300"><MousePointerClick size={16} className="text-cyan-400" /> Interactive controls</div>
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-700/60 text-slate-300"><Zap size={16} className="text-amber-400" /> Step-by-step animations</div>
@@ -42,7 +62,13 @@ export default function Home() {
       <div className="space-y-12">
         {sections.map((sec) => (
           <section key={sec.id}>
-            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: 0.4 }} className="flex items-center justify-between mb-5">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.4 }}
+              className="flex items-center justify-between mb-5"
+            >
               <div>
                 <h2 className="text-xl sm:text-2xl font-semibold text-white">{sec.title}</h2>
                 <div className="h-1 w-16 mt-2 rounded-full bg-gradient-to-r from-violet-500 to-cyan-400" />
