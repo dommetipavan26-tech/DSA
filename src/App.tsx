@@ -103,7 +103,7 @@ export function App() {
             <button
               type="button"
               onClick={() => setSidebarOpen((v) => !v)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.1] bg-[#131724] text-slate-300 lg:hidden"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.1] bg-[#131724] text-slate-300"
               aria-label="Toggle Navigation"
             >
               {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -159,7 +159,7 @@ export function App() {
         {/* Mobile Overlay */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 z-30 bg-black/60 lg:hidden"
+            className="fixed inset-0 z-30 bg-black/60"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -167,7 +167,7 @@ export function App() {
         <div className="flex pt-14">
           {/* Left Sidebar */}
           <aside
-            className={`fixed bottom-0 left-0 top-14 z-40 flex w-64 flex-col border-r border-white/[0.08] bg-[#0e111a] transition-transform duration-200 lg:translate-x-0 ${
+            className={`fixed bottom-0 left-0 top-14 z-40 flex w-64 flex-col border-r border-white/[0.08] bg-[#0e111a] transition-transform duration-200 ${
               sidebarOpen ? "translate-x-0" : "-translate-x-full"
             }`}
           >
@@ -202,7 +202,6 @@ export function App() {
                         {CATEGORY_ICON[cat.id]}
                         {cat.label}
                       </span>
-                      <span className="font-mono">{cat.moduleCode}</span>
                     </div>
                     <div className="space-y-0.5">
                       {catTopics.map((topic) => {
@@ -230,7 +229,7 @@ export function App() {
           </aside>
 
           {/* Main Content Area */}
-          <main className="min-h-[calc(100vh-3.5rem)] flex-1 lg:pl-64">
+          <main className="min-h-[calc(100vh-3.5rem)] flex-1">
             <div className="mx-auto max-w-[1380px] p-4 sm:p-6">
               {activeTopic === "home" ? (
                 <div className="space-y-6">
@@ -260,8 +259,8 @@ export function App() {
                       value={homeCategory}
                       onChange={setHomeCategory}
                       options={[
-                        { id: "all", label: "All Topics", badge: String(TOPICS.length) },
-                        { id: "analysis", label: "Module 1: Analysis" },
+                        { id: "all", label: "All Topics" },
+                        { id: "analysis", label: "Analysis" },
                         { id: "linear", label: "Linear DS" },
                         { id: "trees", label: "Trees" },
                         { id: "graphs", label: "Graphs" },
