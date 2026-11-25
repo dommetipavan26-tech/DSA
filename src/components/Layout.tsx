@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Home, Search, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Home, PanelLeftClose, Search, X } from 'lucide-react'
 import { sections } from '../data/topics'
 import { cn } from '../lib/utils'
 
@@ -36,45 +36,8 @@ export default function Layout() {
           aria-label={open ? 'Close sidebar' : 'Open sidebar'}
           title={open ? 'Close sidebar' : 'Open sidebar'}
         >
-          <img src="/sidebar-toggle.png" alt="" className="w-6 h-6 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
-          <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#0c1326] border border-slate-700 flex items-center justify-center text-slate-400 group-hover:text-violet-300">
-            {open ? <PanelLeftClose size={9} /> : <PanelLeftOpen size={9} />}
-          </span>
+          <img src="/sidebar-toggle.png" alt="" className="w-7 h-7 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
         </button>
-
-        <button
-          onClick={() => {
-            setOpen(true)
-            setTimeout(() => document.getElementById('sidebar-search')?.focus(), 150)
-          }}
-          className={cn(
-            'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 border',
-            open ? 'bg-slate-800/80 text-cyan-300 border-slate-700/70' : 'text-slate-400 hover:text-white hover:bg-slate-800/70 border-transparent hover:border-slate-700/60',
-          )}
-          aria-label="Search"
-          title="Search"
-        >
-          <Search size={18} />
-        </button>
-
-        <div className="w-8 h-px bg-slate-800/80 my-1" />
-
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) =>
-            cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 border',
-              isActive
-                ? 'bg-violet-500/15 text-violet-300 border-violet-500/20 shadow-[0_0_16px_rgba(139,92,246,0.15)]'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/70 border-transparent hover:border-slate-700/60',
-            )
-          }
-          title="Home"
-          aria-label="Home"
-        >
-          <Home size={18} />
-        </NavLink>
 
         <div className="mt-auto pb-1">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" title="Interactive" />
@@ -98,8 +61,13 @@ export default function Layout() {
                     <div className="text-sm font-semibold text-white tracking-tight">DSA Visualizer Lab</div>
                     <div className="text-[11px] text-slate-500">Explore &amp; learn interactively</div>
                   </div>
-                  <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 flex items-center justify-center transition-colors">
-                    <X size={16} />
+                  <button
+                    onClick={() => setOpen(false)}
+                    className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 flex items-center justify-center transition-colors"
+                    aria-label="Close sidebar"
+                    title="Close sidebar"
+                  >
+                    <PanelLeftClose size={18} />
                   </button>
                 </div>
                 <div className="relative">
@@ -189,7 +157,6 @@ export default function Layout() {
         )}
       </AnimatePresence>
 
-      {/* Mobile overlay */}
       <AnimatePresence>
         {open && (
           <motion.div
