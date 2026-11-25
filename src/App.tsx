@@ -9,11 +9,12 @@ import {
   Menu,
   Network,
   Search,
+  Sparkles,
   X,
 } from "lucide-react";
 import { CATEGORIES, TOPICS, type CategoryId, type TopicId } from "./data/syllabus";
-import { DotPattern, MagicCard, NumberTicker } from "./components/ui/magic-ui";
-import { BlurText, ClickSpark } from "./components/ui/react-bits";
+import { MagicCard } from "./components/ui/magic-ui";
+import { ClickSpark } from "./components/ui/react-bits";
 import { AnimatedGroup } from "./components/ui/motion-primitives";
 import { MorphingPillTabs } from "./components/ui/primitives-21st";
 import { renderAnalysisTopic } from "./visualizers/AnalysisVisualizer";
@@ -234,28 +235,21 @@ export function App() {
               {activeTopic === "home" ? (
                 <div className="space-y-6">
                   {/* Hero Card */}
-                  <div className="relative overflow-hidden rounded-2xl border border-white/[0.09] bg-[#10131e] px-6 py-10 sm:px-10">
-                    <DotPattern className="opacity-50 [mask-image:radial-gradient(ellipse_at_center,white_35%,transparent_80%)]" />
-                    <div className="relative z-10 max-w-3xl space-y-4">
-                      <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                        <BlurText text="Understand Every Algorithm Step-by-Step With Your Own Inputs" />
-                      </h1>
-
-                      <p className="max-w-2xl text-sm leading-relaxed text-slate-300">
-                        Built as an open, zero-login visual handbook for college juniors. Every data
-                        structure, tree rotation, graph traversal, sorting tree, and hash table lets
-                        you enter custom values and step through how it executes.
-                      </p>
-
-                      {/* Stats with NumberTicker */}
-                      <div className="max-w-lg border-t border-white/[0.08] pt-5">
-                        <div>
-                          <div className="font-mono text-2xl font-bold text-white">
-                            <NumberTicker value={TOPICS.length} />
-                          </div>
-                          <div className="text-xs text-slate-400">Interactive Visualizers</div>
-                        </div>
+                  <div className="dsa-hero">
+                    <div className="dsa-hero-content">
+                      <div className="dsa-hero-badge">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Interactive DSA Learning
                       </div>
+                      <h1 className="dsa-hero-title">
+                        <span>Data Structures &amp;</span>
+                        <span>Algorithms</span>
+                        <span className="dsa-hero-gradient">Visualizer Lab</span>
+                      </h1>
+                      <p className="dsa-hero-desc">
+                        Explore core DSA concepts through interactive, step-by-step visualizations.
+                        Build structures, trace algorithms, and understand how they really work.
+                      </p>
                     </div>
                   </div>
 
