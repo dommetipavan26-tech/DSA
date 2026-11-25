@@ -111,7 +111,6 @@ export default function Layout() {
               {open ? 'Collapse menu' : 'Expand menu'}
             </div>
           </div>
-          <div className="ml-2 text-sm font-medium text-slate-300">DSA Lab</div>
         </div>
 
         <main className="flex-1 overflow-y-auto">
