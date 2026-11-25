@@ -31,11 +31,11 @@ export default function Layout() {
       {/* Floating toggle */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed top-4 left-4 z-50 group flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+        className="fixed top-4 left-4 z-50 flex items-center justify-center cursor-pointer"
         aria-label={open ? 'Close sidebar' : 'Open sidebar'}
         title={open ? 'Close sidebar' : 'Open sidebar'}
       >
-        <img src="/sidebar-toggle.png" alt="" className="w-10 h-10 object-contain drop-shadow-[0_0_12px_rgba(120,160,255,0.55)] group-hover:drop-shadow-[0_0_18px_rgba(120,160,255,0.85)] transition-all duration-300" />
+        <img src="/sidebar-toggle.png" alt="Open sidebar" className="w-10 h-10 object-contain" />
       </button>
 
       {/* Slide sidebar */}
