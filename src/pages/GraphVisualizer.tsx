@@ -83,7 +83,7 @@ export default function GraphVisualizer() {
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-white">Graph Traversal Visualizer</h1><p className="text-slate-400 mt-1">Explore BFS and DFS on an undirected graph.</p></div>
+      <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-white">Graph Traversals (BFS & DFS)</h1><p className="text-slate-400 mt-1">Explore BFS and DFS on an undirected graph.</p></div>
       <div className="rounded-xl border border-slate-800 bg-[#121a2f]/80 p-4 sm:p-5 mb-5">
         <div className="flex flex-wrap gap-3 items-center mb-4">
           <div className="flex gap-2">
