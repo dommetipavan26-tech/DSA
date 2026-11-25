@@ -1229,7 +1229,7 @@ function FloydWarshallVisualizer() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(5);
 
-  const labels = ["A", "B", "C", "D", "E"].slice(0, size);
+  const labels = useMemo(() => ["A", "B", "C", "D", "E"].slice(0, size), [size]);
 
   const steps = useMemo<FWStep[]>(() => {
     const m = Array.from({ length: size }, (_, i) =>
@@ -1268,7 +1268,7 @@ function FloydWarshallVisualizer() {
       });
     }
     return out;
-  }, [grid, size]);
+  }, [grid, size, labels]);
 
   useEffect(() => { setStepIdx(0); setPlaying(false); }, [grid, size]);
   useEffect(() => {
@@ -1428,7 +1428,7 @@ function WarshallVisualizer() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(5);
 
-  const labels = ["1", "2", "3", "4", "5"].slice(0, size);
+  const labels = useMemo(() => ["1", "2", "3", "4", "5"].slice(0, size), [size]);
 
   const steps = useMemo(() => {
     const r = mat.slice(0, size).map((row) => row.slice(0, size));
@@ -1459,7 +1459,7 @@ function WarshallVisualizer() {
       });
     }
     return out;
-  }, [mat, size]);
+  }, [mat, size, labels]);
 
   useEffect(() => { setStepIdx(0); setPlaying(false); }, [mat, size]);
   useEffect(() => {
