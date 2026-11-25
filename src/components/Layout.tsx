@@ -6,7 +6,7 @@ import { sections } from '../data/topics'
 import { cn } from '../lib/utils'
 
 export default function Layout() {
-  const [open, setOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true)
+  const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const location = useLocation()
 
