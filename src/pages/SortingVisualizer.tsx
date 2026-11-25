@@ -1,677 +1,978 @@
-import { PageHeader } from '../components/ui/page-header'
-import { motion } from 'framer-motion'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Play, Pause, RotateCcw, StepForward, StepBack, Shuffle } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ConceptNotesGrid,
+  MorphingPillTabs,
+  PlaybackDock,
+  VisualizerWorkspace,
+} from "../components/ui/primitives-21st";
+import {
+  InspectorBlock,
+  PresetRow,
+  StudioBtn,
+  StudioSelect,
+  StudioTextarea,
+} from "../components/ui/input-helpers";
+import type { TopicId } from "../data/syllabus";
 
-type Algo = 'selection' | 'insertion' | 'bubble' | 'merge' | 'quick' | 'heap'
-type PivotMode = 'last' | 'first' | 'middle' | 'custom'
+type SortAlgoId =
+  | "selection-sort"
+  | "insertion-sort"
+  | "quick-sort"
+  | "merge-sort"
+  | "heap-sort";
 
-interface MergeNode {
-  id: string
-  values: number[]
-  depth: number
-  role: 'divide' | 'leaf' | 'merge'
-  state: 'pending' | 'active' | 'done'
-  sourceId?: string // leaf/merge node id mapping
+type BarState = "unsorted" | "active" | "comparing" | "swap" | "sorted" | "pivot";
+
+interface SortStep {
+  arr: number[];
+  states: BarState[];
+  heapSize?: number;
+  msg: string;
 }
 
-interface MergeTreeSnapshot {
-  nodes: MergeNode[]
-  edges: { from: string; to: string; label: 'divide' | 'merge' }[]
+/* Merge Sort Divide-and-Conquer Tree Node matching Reference Image 1 */
+interface MergeTreeNode {
+  id: string;
+  depth: number;
+  vals: number[];
+  kind: "divide" | "leaf" | "merge";
+  x: number; // normalized 0..1
+  parentIds: string[];
+  edgeLabel: "divide" | "merge";
 }
 
-interface Step {
-  array: number[]
-  active: number[]
-  comparing: number[]
-  swapping: number[]
-  sorted: number[]
-  pivot?: number
-  description: string
-  mergeTree?: MergeTreeSnapshot
-  heapSize?: number
+interface MergeTreeStep {
+  nodeStates: Record<string, "pending" | "active" | "done">;
+  nodeValues: Record<string, (number | null)[]>;
+  msg: string;
 }
 
-const ALGOS: { id: Algo; name: string }[] = [
-  { id: 'selection', name: 'Selection Sort' },
-  { id: 'insertion', name: 'Insertion Sort' },
-  { id: 'quick', name: 'Quick Sort' },
-  { id: 'merge', name: 'Merge Sort' },
-  { id: 'heap', name: 'Heap Sort' },
-]
+function buildMergeTreeData(input: number[]) {
+  const arr = input.slice(0, 8);
+  const nodes: MergeTreeNode[] = [];
+  const steps: MergeTreeStep[] = [];
+  const initValues: Record<string, (number | null)[]> = {};
+  const initStates: Record<string, "pending" | "active" | "done"> = {};
+  let uid = 0;
 
-const PRESETS: Record<string, number[]> = {
-  Default: [45, 20, 75, 10, 60, 35, 90, 25],
-  'Nearly Sorted': [10, 20, 30, 50, 40, 60, 70, 80],
-  Reversed: [90, 80, 70, 60, 50, 40, 30, 20],
-  'Merge Example': [6, 3, 9, 1, 5, 4, 7, 2],
-}
+  function buildDivide(
+    lo: number,
+    hi: number,
+    depth: number,
+    minX: number,
+    maxX: number,
+    parentId?: string
+  ): { leafOrMergedId: string; maxDepth: number; sortedSlice: number[] } {
+    const id = `d-${uid++}`;
+    const slice = arr.slice(lo, hi + 1);
+    initValues[id] = slice;
+    initStates[id] = "pending";
 
-function clone(a: number[]) { return a.slice() }
-
-// ---------- Merge tree helpers ----------
-interface MTreeBuild {
-  nodes: Record<string, MergeNode>
-  edges: { from: string; to: string; label: 'divide' | 'merge' }[]
-  divideIdByRange: Record<string, string>
-  mergeIdByRange: Record<string, string>
-}
-
-function buildMergeTree(arr: number[]): MTreeBuild {
-  const nodes: Record<string, MergeNode> = {}
-  const edges: { from: string; to: string; label: 'divide' | 'merge' }[] = []
-  const divideIdByRange: Record<string, string> = {}
-  const mergeIdByRange: Record<string, string> = {}
-  let uid = 0
-  const key = (l: number, r: number) => `${l}-${r}`
-
-  const buildDivide = (l: number, r: number, depth: number): string => {
-    const id = `d${uid++}`
-    const vals = arr.slice(l, r + 1)
-    const isLeaf = l === r
-    nodes[id] = { id, values: vals, depth, role: isLeaf ? 'leaf' : 'divide', state: 'pending' }
-    divideIdByRange[key(l, r)] = id
-    if (!isLeaf) {
-      const m = Math.floor((l + r) / 2)
-      const leftId = buildDivide(l, m, depth + 1)
-      const rightId = buildDivide(m + 1, r, depth + 1)
-      edges.push({ from: id, to: leftId, label: 'divide' })
-      edges.push({ from: id, to: rightId, label: 'divide' })
+    if (lo === hi) {
+      nodes.push({
+        id,
+        depth,
+        vals: slice,
+        kind: "leaf",
+        x: (minX + maxX) / 2,
+        parentIds: parentId ? [parentId] : [],
+        edgeLabel: "divide",
+      });
+      return { leafOrMergedId: id, maxDepth: depth, sortedSlice: slice };
     }
-    return id
-  }
 
-  buildDivide(0, arr.length - 1, 0)
+    nodes.push({
+      id,
+      depth,
+      vals: slice,
+      kind: "divide",
+      x: (minX + maxX) / 2,
+      parentIds: parentId ? [parentId] : [],
+      edgeLabel: "divide",
+    });
 
-  // Build merge nodes bottom-up mirroring divide structure
-  const buildMerge = (l: number, r: number, depth: number): string => {
-    const k = key(l, r)
-    if (l === r) {
-      // leaf merges represented by the same leaf node in layout? We'll create merge leaf ref
-      mergeIdByRange[k] = divideIdByRange[k]
-      return divideIdByRange[k]
+    const mid = Math.floor((lo + hi) / 2);
+    const left = buildDivide(lo, mid, depth + 1, minX, (minX + maxX) / 2, id);
+    const right = buildDivide(mid + 1, hi, depth + 1, (minX + maxX) / 2, maxX, id);
+
+    const mergeId = `m-${uid++}`;
+    const merged: number[] = [];
+    let i = 0;
+    let j = 0;
+    while (i < left.sortedSlice.length && j < right.sortedSlice.length) {
+      if (left.sortedSlice[i] <= right.sortedSlice[j]) merged.push(left.sortedSlice[i++]);
+      else merged.push(right.sortedSlice[j++]);
     }
-    const m = Math.floor((l + r) / 2)
-    const leftMerge = buildMerge(l, m, depth + 1)
-    const rightMerge = buildMerge(m + 1, r, depth + 1)
-    const id = `m${uid++}`
-    // merged values will be filled during simulation; placeholder sorted for final
-    const mergedVals = arr.slice(l, r + 1).slice().sort((a, b) => a - b)
-    nodes[id] = { id, values: mergedVals, depth, role: 'merge', state: 'pending' }
-    mergeIdByRange[k] = id
-    edges.push({ from: leftMerge, to: id, label: 'merge' })
-    edges.push({ from: rightMerge, to: id, label: 'merge' })
-    return id
+    while (i < left.sortedSlice.length) merged.push(left.sortedSlice[i++]);
+    while (j < right.sortedSlice.length) merged.push(right.sortedSlice[j++]);
+
+    const mergeDepth = Math.max(left.maxDepth, right.maxDepth) + 1;
+    initValues[mergeId] = slice.map(() => null);
+    initStates[mergeId] = "pending";
+    nodes.push({
+      id: mergeId,
+      depth: mergeDepth,
+      vals: merged,
+      kind: "merge",
+      x: (minX + maxX) / 2,
+      parentIds: [left.leafOrMergedId, right.leafOrMergedId],
+      edgeLabel: "merge",
+    });
+
+    return { leafOrMergedId: mergeId, maxDepth: mergeDepth, sortedSlice: merged };
   }
 
-  buildMerge(0, arr.length - 1, 0)
-  return { nodes, edges, divideIdByRange, mergeIdByRange }
-}
+  buildDivide(0, arr.length - 1, 0, 0.05, 0.95);
 
-function snapshotMergeTree(mt: MTreeBuild): MergeTreeSnapshot {
-  return {
-    nodes: Object.values(mt.nodes).map(n => ({ ...n, values: clone(n.values) })),
-    edges: mt.edges.map(e => ({ ...e })),
-  }
-}
+  // Normalize depths so merge mirror is clean and symmetric
+  const divideMax = Math.max(...nodes.filter((n) => n.kind !== "merge").map((n) => n.depth));
+  nodes.forEach((n) => {
+    if (n.kind === "merge") {
+      // keep bottom-up symmetry
+      n.depth = divideMax + (divideMax - (nodes.find((p) => p.id === n.parentIds[0])?.depth ?? divideMax)) + 1;
+    }
+  });
+  // Re-normalize cleanly by topological level
+  const levelMap: Record<string, number> = {};
+  nodes.forEach((n) => {
+    if (n.kind !== "merge") levelMap[n.id] = n.depth;
+  });
+  nodes
+    .filter((n) => n.kind === "merge")
+    .forEach((n) => {
+      const pMax = Math.max(...n.parentIds.map((pid) => levelMap[pid] ?? divideMax));
+      levelMap[n.id] = pMax + 1;
+      n.depth = levelMap[n.id];
+    });
 
-function genSteps(algo: Algo, input: number[], pivotMode: PivotMode = 'last', customPivotIndex = 0, heapMode: 'min' | 'max' = 'max'): Step[] {
-  const arr = clone(input)
-  const n = arr.length
-  const steps: Step[] = []
-  const sorted: number[] = []
+  // Record step-by-step animation matching Reference Image 1
+  const curStates = { ...initStates };
+  const curValues = Object.fromEntries(Object.entries(initValues).map(([k, v]) => [k, [...v]]));
+  steps.push({
+    nodeStates: { ...curStates },
+    nodeValues: Object.fromEntries(Object.entries(curValues).map(([k, v]) => [k, [...v]])),
+    msg: "Initial array ready. Press Play or Step to start divide-and-conquer.",
+  });
 
-  let mergeTree: MTreeBuild | null = null
-  if (algo === 'merge') mergeTree = buildMergeTree(arr)
-
-  const push = (s: Partial<Step> & { description: string }) => {
+  function animateNode(divideNode: MergeTreeNode | undefined) {
+    if (!divideNode) return;
+    curStates[divideNode.id] = "active";
     steps.push({
-      array: clone(arr),
-      active: s.active ? clone(s.active) : [],
-      comparing: s.comparing ? clone(s.comparing) : [],
-      swapping: s.swapping ? clone(s.swapping) : [],
-      sorted: s.sorted ? clone(s.sorted) : clone(sorted),
-      pivot: s.pivot,
-      description: s.description,
-      mergeTree: mergeTree ? snapshotMergeTree(mergeTree) : undefined,
-      heapSize: s.heapSize,
-    })
+      nodeStates: { ...curStates },
+      nodeValues: Object.fromEntries(Object.entries(curValues).map(([k, v]) => [k, [...v]])),
+      msg:
+        divideNode.kind === "leaf"
+          ? `Base case single element [${divideNode.vals[0]}] is trivially sorted.`
+          : `Divide [${divideNode.vals.join(", ")}] into left and right halves.`,
+    });
+
+    if (divideNode.kind === "leaf") {
+      curStates[divideNode.id] = "done";
+      return;
+    }
+
+    const children = nodes.filter((n) => n.kind !== "merge" && n.parentIds.includes(divideNode.id));
+    children.forEach((c) => animateNode(c));
+
+    // Find corresponding merge node whose parentIds are the outputs of these children
+    const mergeNode = nodes.find(
+      (n) =>
+        n.kind === "merge" &&
+        children.every((c) => {
+          // either c itself is a leaf parent of n, or c's sibling merge node is
+          if (n.parentIds.includes(c.id)) return true;
+          const grandChildren = nodes.filter((gc) => gc.parentIds.includes(c.id));
+          return grandChildren.length > 0;
+        }) &&
+        Math.abs(n.x - divideNode.x) < 0.001 &&
+        n.vals.length === divideNode.vals.length
+    );
+
+    if (mergeNode) {
+      curStates[mergeNode.id] = "active";
+      curValues[mergeNode.id] = mergeNode.vals.map(() => null);
+      for (let k = 0; k < mergeNode.vals.length; k++) {
+        curValues[mergeNode.id][k] = mergeNode.vals[k];
+        steps.push({
+          nodeStates: { ...curStates },
+          nodeValues: Object.fromEntries(Object.entries(curValues).map(([k2, v2]) => [k2, [...v2]])),
+          msg: `Place ${mergeNode.vals[k]} at position ${k}.`,
+        });
+      }
+      curStates[mergeNode.id] = "done";
+      curStates[divideNode.id] = "done";
+      steps.push({
+        nodeStates: { ...curStates },
+        nodeValues: Object.fromEntries(Object.entries(curValues).map(([k2, v2]) => [k2, [...v2]])),
+        msg: `Merged sorted subarray [${mergeNode.vals.join(", ")}].`,
+      });
+    }
   }
 
-  push({ description: 'Initial array. Press Play or Step to start.' })
+  animateNode(nodes[0]);
+  return { nodes, steps };
+}
 
-  if (algo === 'bubble') {
+function generateSortSteps(
+  input: number[],
+  algo: SortAlgoId,
+  pivotMode: "last" | "first" | "middle" | "random",
+  heapType: "max" | "min"
+): SortStep[] {
+  const a = [...input];
+  const n = a.length;
+  const steps: SortStep[] = [
+    {
+      arr: [...a],
+      states: a.map(() => "unsorted"),
+      heapSize: n,
+      msg: "Initial array. Press Play or Step to start.",
+    },
+  ];
+
+  if (algo === "selection-sort") {
     for (let i = 0; i < n; i++) {
-      for (let j = 0; j < n - i - 1; j++) {
-        push({ comparing: [j, j + 1], description: `Compare ${arr[j]} and ${arr[j + 1]}.` })
-        if (arr[j] > arr[j + 1]) {
-          ;[arr[j], arr[j + 1]] = [arr[j + 1], arr[j]]
-          push({ swapping: [j, j + 1], description: `Swap them → [${arr[j]}, ${arr[j + 1]}].` })
-        }
-      }
-      sorted.unshift(n - i - 1)
-      push({ sorted: clone(sorted), description: `Position ${n - i - 1} is sorted (${arr[n - i - 1]}).` })
-    }
-  } else if (algo === 'selection') {
-    for (let i = 0; i < n; i++) {
-      let minIdx = i
-      push({ active: [i], description: `Pass ${i + 1}: assume minimum is ${arr[i]} at index ${i}.` })
+      let minIdx = i;
       for (let j = i + 1; j < n; j++) {
-        push({ active: [minIdx], comparing: [j], description: `Compare min ${arr[minIdx]} with ${arr[j]}.` })
-        if (arr[j] < arr[minIdx]) {
-          minIdx = j
-          push({ active: [minIdx], description: `New minimum: ${arr[minIdx]} at index ${minIdx}.` })
-        }
+        steps.push({
+          arr: [...a],
+          states: a.map((_, k) => (k < i ? "sorted" : k === minIdx ? "active" : k === j ? "comparing" : "unsorted")),
+          msg: `Pass ${i + 1}: comparing arr[${j}]=${a[j]} with current min arr[${minIdx}]=${a[minIdx]}.`,
+        });
+        if (a[j] < a[minIdx]) minIdx = j;
       }
       if (minIdx !== i) {
-        ;[arr[i], arr[minIdx]] = [arr[minIdx], arr[i]]
-        push({ swapping: [i, minIdx], description: `Swap index ${i} and ${minIdx}.` })
+        [a[i], a[minIdx]] = [a[minIdx], a[i]];
+        steps.push({
+          arr: [...a],
+          states: a.map((_, k) => (k < i ? "sorted" : k === i || k === minIdx ? "swap" : "unsorted")),
+          msg: `Swap minimum ${a[i]} into sorted position ${i}.`,
+        });
       }
-      sorted.push(i)
-      push({ sorted: clone(sorted), description: `Index ${i} is in its final position.` })
+      steps.push({
+        arr: [...a],
+        states: a.map((_, k) => (k <= i ? "sorted" : "unsorted")),
+        msg: `Position ${i} locked with value ${a[i]}.`,
+      });
     }
-  } else if (algo === 'insertion') {
-    sorted.push(0)
-    push({ sorted: clone(sorted), description: 'First element is trivially sorted.' })
+  } else if (algo === "insertion-sort") {
     for (let i = 1; i < n; i++) {
-      const key = arr[i]
-      let j = i - 1
-      push({ active: [i], sorted: clone(sorted), description: `Pick key ${key} at index ${i}.` })
-      while (j >= 0 && arr[j] > key) {
-        push({ comparing: [j, j + 1], active: [j + 1], sorted: clone(sorted.filter(x => x < i)), description: `${arr[j]} > ${key}, shift ${arr[j]} right.` })
-        arr[j + 1] = arr[j]
-        push({ swapping: [j, j + 1], sorted: clone(sorted.filter(x => x < i)), description: `Shifted to index ${j + 1}.` })
-        j--
+      const key = a[i];
+      let j = i - 1;
+      steps.push({
+        arr: [...a],
+        states: a.map((_, k) => (k < i ? "sorted" : k === i ? "active" : "unsorted")),
+        msg: `Pick key = ${key} at index ${i} to insert into sorted prefix.`,
+      });
+      while (j >= 0 && a[j] > key) {
+        steps.push({
+          arr: [...a],
+          states: a.map((_, k) => (k === j || k === j + 1 ? "comparing" : k <= i ? "sorted" : "unsorted")),
+          msg: `${a[j]} > ${key}, shift ${a[j]} right to index ${j + 1}.`,
+        });
+        a[j + 1] = a[j];
+        a[j] = key;
+        steps.push({
+          arr: [...a],
+          states: a.map((_, k) => (k === j ? "swap" : k <= i ? "sorted" : "unsorted")),
+          msg: `Moved ${key} left to index ${j}.`,
+        });
+        j--;
       }
-      arr[j + 1] = key
-      if (!sorted.includes(i)) sorted.push(i)
-      push({ active: [j + 1], sorted: clone(sorted), description: `Placed ${key} at index ${j + 1}.` })
     }
-  } else if (algo === 'merge' && mergeTree) {
-    const mt = mergeTree
-    const key = (l: number, r: number) => `${l}-${r}`
-    const setState = (id: string, state: MergeNode['state']) => { if (mt.nodes[id]) mt.nodes[id].state = state }
-    const setValues = (id: string, vals: number[]) => { if (mt.nodes[id]) mt.nodes[id].values = clone(vals) }
-
-    // mark root active
-    setState(mt.divideIdByRange[key(0, n - 1)], 'active')
-    push({ active: Array.from({ length: n }, (_, i) => i), description: 'Start merge sort: divide the array recursively.' })
-
-    const mergeSort = (l: number, r: number) => {
-      const id = mt.divideIdByRange[key(l, r)]
-      setState(id, 'active')
-      if (l === r) {
-        push({ active: [l], description: `Single element [${arr[l]}] — already sorted.` })
-        setState(id, 'done')
-        return
+    steps.push({
+      arr: [...a],
+      states: a.map(() => "sorted"),
+      msg: "Insertion Sort complete!",
+    });
+  } else if (algo === "quick-sort") {
+    const sortedSet = new Set<number>();
+    function qs(lo: number, hi: number) {
+      if (lo > hi) return;
+      if (lo === hi) {
+        sortedSet.add(lo);
+        return;
       }
-      const m = Math.floor((l + r) / 2)
-      push({ active: Array.from({ length: r - l + 1 }, (_, i) => l + i), description: `Divide [${arr.slice(l, r + 1).join(', ')}] into left [${l}..${m}] and right [${m + 1}..${r}].` })
-      setState(mt.divideIdByRange[key(l, m)], 'active')
-      setState(mt.divideIdByRange[key(m + 1, r)], 'active')
-      mergeSort(l, m)
-      mergeSort(m + 1, r)
-
-      // merge phase
-      const mergeId = mt.mergeIdByRange[key(l, r)]
-      setState(mergeId, 'active')
-      const left = arr.slice(l, m + 1)
-      const right = arr.slice(m + 1, r + 1)
-      push({ active: Array.from({ length: r - l + 1 }, (_, i) => l + i), description: `Merge [${left.join(', ')}] and [${right.join(', ')}].` })
-      let i = 0, j = 0, k = l
-      while (i < left.length && j < right.length) {
-        push({ comparing: [k], active: Array.from({ length: r - l + 1 }, (_, x) => l + x), description: `Compare ${left[i]} and ${right[j]}.` })
-        if (left[i] <= right[j]) { arr[k] = left[i++]; }
-        else { arr[k] = right[j++]; }
-        setValues(mergeId, arr.slice(l, k + 1).concat(Array(Math.max(0, r - k)).fill(0)).slice(0, r - l + 1).map((v, idx) => idx <= k - l ? arr[l + idx] : v))
-        push({ swapping: [k], active: Array.from({ length: r - l + 1 }, (_, x) => l + x), description: `Place ${arr[k]} at position ${k}.` })
-        k++
-      }
-      while (i < left.length) { arr[k] = left[i++]; push({ swapping: [k], active: Array.from({ length: r - l + 1 }, (_, x) => l + x), description: `Take remaining ${arr[k]}.` }); k++ }
-      while (j < right.length) { arr[k] = right[j++]; push({ swapping: [k], active: Array.from({ length: r - l + 1 }, (_, x) => l + x), description: `Take remaining ${arr[k]}.` }); k++ }
-      setValues(mergeId, arr.slice(l, r + 1))
-      setState(mergeId, 'done')
-      setState(id, 'done')
-      const doneAll = l === 0 && r === n - 1
-      push({ sorted: doneAll ? Array.from({ length: n }, (_, i) => i) : [], active: Array.from({ length: r - l + 1 }, (_, i) => l + i), description: `Merged → [${arr.slice(l, r + 1).join(', ')}].` })
-    }
-    mergeSort(0, n - 1)
-  } else if (algo === 'quick') {
-    const finalSorted: number[] = []
-    const pickPivot = (lo: number, hi: number) => {
-      if (pivotMode === 'first') return lo
-      if (pivotMode === 'middle') return Math.floor((lo + hi) / 2)
-      if (pivotMode === 'custom') {
-        const idx = Math.max(lo, Math.min(hi, customPivotIndex))
-        return idx
-      }
-      return hi
-    }
-    const partition = (lo: number, hi: number): number => {
-      let pIdx = pickPivot(lo, hi)
-      const pVal = arr[pIdx]
-      push({ pivot: pIdx, active: Array.from({ length: hi - lo + 1 }, (_, i) => lo + i), description: `Choose pivot ${pVal} at index ${pIdx}.` })
+      const pIdx =
+        pivotMode === "first"
+          ? lo
+          : pivotMode === "middle"
+          ? Math.floor((lo + hi) / 2)
+          : pivotMode === "random"
+          ? lo + ((lo * 7 + hi * 3) % (hi - lo + 1))
+          : hi;
       if (pIdx !== hi) {
-        ;[arr[pIdx], arr[hi]] = [arr[hi], arr[pIdx]]
-        push({ swapping: [pIdx, hi], pivot: hi, description: `Move pivot ${pVal} to end (index ${hi}) for partitioning.` })
-        pIdx = hi
+        [a[pIdx], a[hi]] = [a[hi], a[pIdx]];
+        steps.push({
+          arr: [...a],
+          states: a.map((_, k) => (sortedSet.has(k) ? "sorted" : k === hi ? "pivot" : k === pIdx ? "swap" : "unsorted")),
+          msg: `Move chosen ${pivotMode} pivot (${a[hi]}) to end of range [${lo}..${hi}].`,
+        });
       }
-      const pivotVal = arr[hi]
-      let i = lo
+      const pivot = a[hi];
+      let i = lo - 1;
+      steps.push({
+        arr: [...a],
+        states: a.map((_, k) => (sortedSet.has(k) ? "sorted" : k === hi ? "pivot" : k >= lo && k < hi ? "active" : "unsorted")),
+        msg: `Partition [${lo}..${hi}] around pivot = ${pivot}.`,
+      });
       for (let j = lo; j < hi; j++) {
-        push({ pivot: hi, comparing: [j], active: [i], description: `Compare ${arr[j]} with pivot ${pivotVal}.` })
-        if (arr[j] < pivotVal) {
-          if (i !== j) { [arr[i], arr[j]] = [arr[j], arr[i]]; push({ pivot: hi, swapping: [i, j], description: `Swap ${arr[j]} and ${arr[i]} (move smaller left).` }) }
-          i++
+        steps.push({
+          arr: [...a],
+          states: a.map((_, k) => (sortedSet.has(k) ? "sorted" : k === hi ? "pivot" : k === j ? "comparing" : "unsorted")),
+          msg: `Compare arr[${j}]=${a[j]} with pivot ${pivot}.`,
+        });
+        if (a[j] <= pivot) {
+          i++;
+          if (i !== j) {
+            [a[i], a[j]] = [a[j], a[i]];
+            steps.push({
+              arr: [...a],
+              states: a.map((_, k) => (sortedSet.has(k) ? "sorted" : k === hi ? "pivot" : k === i || k === j ? "swap" : "unsorted")),
+              msg: `${a[i]} <= ${pivot}: swap index ${i} and ${j}.`,
+            });
+          }
         }
       }
-      if (i !== hi) { [arr[i], arr[hi]] = [arr[hi], arr[i]]; push({ swapping: [i, hi], description: `Place pivot ${arr[hi]} at final index ${i}.` }) }
-      finalSorted.push(i)
-      push({ sorted: clone(finalSorted), description: `Pivot ${arr[i]} fixed at index ${i}.` })
-      return i
+      [a[i + 1], a[hi]] = [a[hi], a[i + 1]];
+      sortedSet.add(i + 1);
+      steps.push({
+        arr: [...a],
+        states: a.map((_, k) => (sortedSet.has(k) ? "sorted" : "unsorted")),
+        msg: `Pivot ${pivot} settled at final index ${i + 1}.`,
+      });
+      qs(lo, i);
+      qs(i + 2, hi);
     }
-    const qs = (lo: number, hi: number) => {
-      if (lo > hi) return
-      if (lo === hi) { if (!finalSorted.includes(lo)) { finalSorted.push(lo); push({ sorted: clone(finalSorted), description: `Element ${arr[lo]} at ${lo} is sorted.` }) } return }
-      const p = partition(lo, hi)
-      qs(lo, p - 1)
-      qs(p + 1, hi)
+    qs(0, n - 1);
+    steps.push({
+      arr: [...a],
+      states: a.map(() => "sorted"),
+      msg: "Quick Sort complete!",
+    });
+  } else if (algo === "merge-sort") {
+    function ms(lo: number, hi: number) {
+      if (lo >= hi) return;
+      const mid = Math.floor((lo + hi) / 2);
+      steps.push({
+        arr: [...a],
+        states: a.map((_, k) => (k >= lo && k <= hi ? "active" : "unsorted")),
+        msg: `Divide range [${lo}..${hi}] at mid=${mid}.`,
+      });
+      ms(lo, mid);
+      ms(mid + 1, hi);
+      const left = a.slice(lo, mid + 1);
+      const right = a.slice(mid + 1, hi + 1);
+      let i = 0, j = 0, k = lo;
+      while (i < left.length && j < right.length) {
+        a[k] = left[i] <= right[j] ? left[i++] : right[j++];
+        steps.push({
+          arr: [...a],
+          states: a.map((_, x) => (x === k ? "swap" : x >= lo && x <= hi ? "comparing" : "unsorted")),
+          msg: `Merge: write ${a[k]} into index ${k}.`,
+        });
+        k++;
+      }
+      while (i < left.length) {
+        a[k] = left[i++];
+        steps.push({
+          arr: [...a],
+          states: a.map((_, x) => (x === k ? "swap" : "unsorted")),
+          msg: `Copy remaining ${a[k]} into index ${k}.`,
+        });
+        k++;
+      }
+      while (j < right.length) {
+        a[k] = right[j++];
+        steps.push({
+          arr: [...a],
+          states: a.map((_, x) => (x === k ? "swap" : "unsorted")),
+          msg: `Copy remaining ${a[k]} into index ${k}.`,
+        });
+        k++;
+      }
     }
-    qs(0, n - 1)
+    ms(0, n - 1);
+    steps.push({ arr: [...a], states: a.map(() => "sorted"), msg: "Merge Sort complete!" });
+  } else if (algo === "heap-sort") {
+    const isBetter = (x: number, y: number) => (heapType === "max" ? x > y : x < y);
+    const heapLabel = heapType === "max" ? "Max-Heap" : "Min-Heap";
 
-  } else if (algo === 'heap') {
-    const wantMax = heapMode === 'max'
-    const better = (a:number,b:number) => wantMax ? a > b : a < b
-    const heapify = (size: number, i: number) => {
-      let best = i
-      const l = 2 * i + 1, r = 2 * i + 2
-      if (l < size) { push({ comparing: [best, l], heapSize: size, description: `Compare ${arr[best]} with left child ${arr[l]}.` }); if (better(arr[l], arr[best])) best = l }
-      if (r < size) { push({ comparing: [best, r], heapSize: size, description: `Compare ${arr[best]} with right child ${arr[r]}.` }); if (better(arr[r], arr[best])) best = r }
-      if (best !== i) { [arr[i], arr[best]] = [arr[best], arr[i]]; push({ swapping: [i, best], heapSize: size, description: `Swap ${arr[best]} and ${arr[i]}; heapify down.` }); heapify(size, best) }
+    function heapify(size: number, i: number) {
+      let best = i;
+      const l = 2 * i + 1;
+      const r = 2 * i + 2;
+      steps.push({
+        arr: [...a],
+        heapSize: size,
+        states: a.map((_, k) =>
+          k >= size ? "sorted" : k === i || k === l || k === r ? "comparing" : "unsorted"
+        ),
+        msg: `Heapify at index ${i} (${a[i]}) within ${heapLabel} size ${size}.`,
+      });
+      if (l < size && isBetter(a[l], a[best])) best = l;
+      if (r < size && isBetter(a[r], a[best])) best = r;
+      if (best !== i) {
+        [a[i], a[best]] = [a[best], a[i]];
+        steps.push({
+          arr: [...a],
+          heapSize: size,
+          states: a.map((_, k) => (k >= size ? "sorted" : k === i || k === best ? "swap" : "unsorted")),
+          msg: `Swap parent arr[${i}] and child arr[${best}] to restore ${heapLabel} property.`,
+        });
+        heapify(size, best);
+      }
     }
-    push({ description: `Build a ${wantMax ? 'Max' : 'Min'} Heap.`, heapSize: n })
-    for (let i = Math.floor(n / 2) - 1; i >= 0; i--) { push({ active: [i], heapSize: n, description: `Heapify node ${i}.` }); heapify(n, i) }
-    push({ description: `${wantMax ? 'Max' : 'Min'} Heap built.`, heapSize: n })
-    for (let i = n - 1; i > 0; i--) {
-      [arr[0], arr[i]] = [arr[i], arr[0]]
-      sorted.unshift(i)
-      push({ swapping: [0, i], sorted: clone(sorted), heapSize: i, description: `Extract ${wantMax ? 'max' : 'min'} ${arr[i]} to position ${i}.` })
-      heapify(i, 0)
+
+    for (let i = Math.floor(n / 2) - 1; i >= 0; i--) heapify(n, i);
+    steps.push({
+      arr: [...a],
+      heapSize: n,
+      states: a.map((_, k) => (k === 0 ? "pivot" : "active")),
+      msg: `${heapLabel} built! Root = ${a[0]} (${heapType === "max" ? "largest" : "smallest"}).`,
+    });
+
+    for (let end = n - 1; end > 0; end--) {
+      [a[0], a[end]] = [a[end], a[0]];
+      steps.push({
+        arr: [...a],
+        heapSize: end,
+        states: a.map((_, k) => (k >= end ? "sorted" : k === 0 ? "swap" : "unsorted")),
+        msg: `Extract root ${a[end]} -> place at index ${end} (${heapType === "max" ? "ascending" : "descending"} order).`,
+      });
+      heapify(end, 0);
     }
-    sorted.unshift(0)
+    steps.push({
+      arr: [...a],
+      heapSize: 0,
+      states: a.map(() => "sorted"),
+      msg: `Heap Sort (${heapLabel}) complete!`,
+    });
   }
 
-  const last = steps[steps.length - 1]
-  if (!last || last.sorted.length !== n) {
-    push({ sorted: Array.from({ length: n }, (_, i) => i), description: 'Array fully sorted.' })
-  }
-  return steps
+  return steps;
 }
 
-function BarView({ step, maxVal }: { step: Step; maxVal: number }) {
-  const arr = step.array
-  return (
-    <div className="flex items-end justify-center gap-2 h-72 sm:h-80 px-4 pt-6 pb-2">
-      {arr.map((v, i) => {
-        let color = '#6366f1'
-        if (step.sorted.includes(i)) color = '#22c55e'
-        if (step.active.includes(i)) color = '#06b6d4'
-        if (step.comparing.includes(i)) color = '#f59e0b'
-        if (step.swapping.includes(i)) color = '#ec4899'
-        if (step.pivot === i) color = '#a855f7'
-        const h = Math.max(6, (v / maxVal) * 100)
-        return (
-          <div key={i} className="flex flex-col items-center gap-1 flex-1 max-w-14 h-full justify-end">
-            <span className="text-[11px] text-slate-300 font-mono leading-none">{v}</span>
-            <div className="w-full flex-1 flex items-end">
-              <div className="w-full rounded-t-md transition-all duration-300" style={{ height: `${h}%`, backgroundColor: color, boxShadow: `0 0 14px ${color}55` }} />
-            </div>
-            <span className="text-[10px] text-slate-500 leading-none">{i}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-
-function HeapTreeView({ step }: { step: Step }) {
-  const arr = step.array
-  const n = step.heapSize ?? arr.length
-  const levels: number[][] = []
-  let i = 0, lv = 0
-  while (i < arr.length) { const c = Math.pow(2, lv); const row:number[]=[]; for(let k=0;k<c && i<arr.length;k++,i++) row.push(i); levels.push(row); lv++ }
-  const W=800, LH=90, H=Math.max(240, levels.length*LH+50)
-  const pos: Record<number,{x:number;y:number}> = {}
-  levels.forEach((row,li)=>{ const y=45+li*LH; const gap=W/(row.length+1); row.forEach((idx,k)=>pos[idx]={x:gap*(k+1),y}) })
-  const color=(idx:number)=>{
-    if (step.sorted.includes(idx)) return {f:'#14532d',s:'#22c55e',t:'#bbf7d0'}
-    if (step.swapping.includes(idx)) return {f:'#831843',s:'#ec4899',t:'#fbcfe8'}
-    if (step.comparing.includes(idx)) return {f:'#78350f',s:'#f59e0b',t:'#fde68a'}
-    if (step.active.includes(idx)) return {f:'#164e63',s:'#22d3ee',t:'#a5f3fc'}
-    if (idx < n) return {f:'#1e293b',s:'#6366f1',t:'#c7d2fe'}
-    return {f:'#111827',s:'#334155',t:'#64748b'}
+const SORT_INFO: Record<
+  SortAlgoId,
+  {
+    name: string;
+    about: string;
+    intuition: string;
+    points: string[];
+    complexities: { op: string; best: string; avg: string; worst: string; space: string }[];
   }
-  return (
-    <div className="w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" style={{minWidth:320}}>
-        {arr.map((_,idx)=>[2*idx+1,2*idx+2].filter(c=>c<arr.length).map(c=>(
-          <line key={`${idx}-${c}`} x1={pos[idx].x} y1={pos[idx].y} x2={pos[c].x} y2={pos[c].y} stroke={c<n&&idx<n?'#475569':'#1f2937'} strokeWidth="2" />
-        )))}
-        {arr.map((v,idx)=>{ const p=pos[idx], c=color(idx); return (
-          <g key={idx}>
-            <circle cx={p.x} cy={p.y} r="22" fill={c.f} stroke={c.s} strokeWidth="2.5" />
-            <text x={p.x} y={p.y+1} textAnchor="middle" dominantBaseline="middle" fill={c.t} fontSize="13" fontWeight="700">{v}</text>
-            <text x={p.x} y={p.y+34} textAnchor="middle" fill="#64748b" fontSize="10">[{idx}]</text>
-          </g>
-        )})}
-      </svg>
-    </div>
-  )
-}
-function MergeTreeView({ step, input }: { step: Step; input: number[] }) {
-  const mt = step.mergeTree
-  if (!mt) return <div className="h-64 flex items-center justify-center text-slate-500">No merge tree data.</div>
-  const n = input.length
-  const maxDepth = Math.max(...mt.nodes.map(nd => nd.depth))
-  const rowH = 72
-  const boxW = Math.max(28, Math.min(44, 520 / Math.max(1, n)))
-  const boxH = 28
-  const totalW = Math.max(700, n * (boxW + 2) + 120)
-  // y positions: divide top-down, merge bottom-up, leaves in middle
-  const yFor = (nd: MergeNode) => {
-    if (nd.role === 'divide') return 40 + nd.depth * rowH
-    if (nd.role === 'leaf') return 40 + maxDepth * rowH
-    // merge: mirror below leaves
-    return 40 + maxDepth * rowH + (maxDepth - nd.depth) * rowH
-  }
-  // x positions: based on array range center
-  // find range for each node by id pattern is hard; instead derive from values length and position in tree
-  // Better: compute x by recursive layout from edges. Build children map.
-  const childrenMap: Record<string, string[]> = {}
-  const parentsMap: Record<string, string[]> = {}
-  for (const e of mt.edges) {
-    (childrenMap[e.from] ||= []).push(e.to)
-    ;(parentsMap[e.to] ||= []).push(e.from)
-  }
-  // assign x for divide/leaf by inorder of divide tree
-  const xPos: Record<string, number> = {}
-  let leafOrder = 0
-  const leafXStep = (totalW - 80) / Math.max(1, n)
-  const assignDivideX = (id: string) => {
-    const nd = mt.nodes.find(x => x.id === id)
-    if (!nd) return
-    const kids = (childrenMap[id] || []).filter(k => mt.nodes.find(x=>x.id===k)?.role !== 'merge')
-    if (kids.length === 0) {
-      xPos[id] = 40 + leafOrder * leafXStep + leafXStep / 2
-      leafOrder++
-    } else {
-      kids.forEach(assignDivideX)
-      xPos[id] = kids.reduce((s, k) => s + (xPos[k] || 0), 0) / kids.length
-    }
-  }
-  const divideRoot = mt.nodes.find(x => x.role === 'divide' && x.depth === 0) || mt.nodes.find(x => x.depth === 0)
-  if (divideRoot) assignDivideX(divideRoot.id)
-  // merge nodes: center over their source children (edges coming in labeled merge)
-  const mergeNodes = mt.nodes.filter(x => x.role === 'merge').sort((a,b) => b.depth - a.depth)
-  for (const mn of mergeNodes) {
-    const srcs = mt.edges.filter(e => e.to === mn.id && e.label === 'merge').map(e => e.from)
-    if (srcs.length) xPos[mn.id] = srcs.reduce((s, k) => s + (xPos[k] || 0), 0) / srcs.length
-  }
+> = {
+  "selection-sort": {
+    name: "Selection Sort",
+    about: "Scans the unsorted slice to find the minimum element and swaps it into place.",
+    intuition: "Like organizing test papers by scanning the pile for the lowest score each round.",
+    points: ["Performs at most O(n) swaps — useful when writes are expensive.", "Always makes O(n^2) comparisons regardless of input order.", "Not stable by default."],
+    complexities: [{ op: "Selection Sort", best: "O(n^2)", avg: "O(n^2)", worst: "O(n^2)", space: "O(1)" }],
+  },
+  "insertion-sort": {
+    name: "Insertion Sort",
+    about: "Inserts each element into its proper spot within the already-sorted left subarray.",
+    intuition: "How most people sort a hand of playing cards one card at a time.",
+    points: ["Adaptive: runs in O(n) on already-sorted or nearly-sorted arrays.", "Stable sort and in-place O(1) memory."],
+    complexities: [{ op: "Insertion Sort", best: "O(n)", avg: "O(n^2)", worst: "O(n^2)", space: "O(1)" }],
+  },
+  "quick-sort": {
+    name: "Quick Sort",
+    about: "Partitions around a chosen pivot, then recursively sorts left and right partitions. You can choose which element acts as pivot.",
+    intuition: "Pick a pivot; smaller items move left, larger items move right, then recurse on each half.",
+    points: ["Pivot choice dramatically affects performance on sorted inputs.", "In-place partitioning with O(log n) average recursion stack."],
+    complexities: [{ op: "Quick Sort", best: "O(n log n)", avg: "O(n log n)", worst: "O(n^2)", space: "O(log n)" }],
+  },
+  "merge-sort": {
+    name: "Merge Sort",
+    about: "Divides the array into halves, recursively sorts, then merges sorted halves. Stable O(n log n). The tree view shows divide and merge phases.",
+    intuition: "Split down to 1-element sorted arrays, then zip pairs together in sorted order.",
+    points: ["Guaranteed O(n log n) worst-case time.", "Stable sort; needs O(n) temporary merge buffer."],
+    complexities: [{ op: "Merge Sort", best: "O(n log n)", avg: "O(n log n)", worst: "O(n log n)", space: "O(n)" }],
+  },
+  "heap-sort": {
+    name: "Heap Sort",
+    about: "Builds a Binary Heap (Max-Heap for ascending, Min-Heap for descending) and repeatedly extracts the root.",
+    intuition: "Turn the array into a tournament tree so the extreme element always floats to index 0.",
+    points: ["Max-Heap produces ascending order; Min-Heap produces descending order.", "Guaranteed O(n log n) time AND O(1) auxiliary space."],
+    complexities: [{ op: "Heap Sort", best: "O(n log n)", avg: "O(n log n)", worst: "O(n log n)", space: "O(1)" }],
+  },
+};
 
-  const totalH = 40 + maxDepth * rowH * 2 + 60
-  const nodeW = (nd: MergeNode) => nd.values.length * boxW
+export function SortingVisualizer({
+  topicId,
+  onSelectTopic,
+}: {
+  topicId: TopicId;
+  onSelectTopic: (id: TopicId) => void;
+}) {
+  const algo: SortAlgoId =
+    topicId === "selection-sort" ||
+    topicId === "insertion-sort" ||
+    topicId === "quick-sort" ||
+    topicId === "merge-sort" ||
+    topicId === "heap-sort"
+      ? topicId
+      : "quick-sort";
 
-  return (
-    <div className="w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${totalW} ${totalH}`} className="w-full h-auto" style={{ minWidth: Math.min(totalW, 360) }}>
-        <defs>
-          <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="#64748b" />
-          </marker>
-          <marker id="arrowActive" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b" />
-          </marker>
-        </defs>
-        {mt.edges.map((e, i) => {
-          const a = mt.nodes.find(x => x.id === e.from)
-          const b = mt.nodes.find(x => x.id === e.to)
-          if (!a || !b) return null
-          const ax = xPos[a.id] || 0, ay = yFor(a) + boxH / 2
-          const bx = xPos[b.id] || 0, by = yFor(b) - boxH / 2
-          const active = a.state === 'active' || b.state === 'active'
-          const done = a.state === 'done' && b.state === 'done'
-          const stroke = active ? '#f59e0b' : done ? '#22c55e' : '#475569'
-          const mx = (ax + bx) / 2, my = (ay + by) / 2
-          return (
-            <g key={i}>
-              <line x1={ax} y1={ay} x2={bx} y2={by} stroke={stroke} strokeWidth={active ? 2.2 : 1.6} markerEnd={active ? 'url(#arrowActive)' : 'url(#arrow)'} />
-              <text x={mx + (bx < ax ? -14 : 14)} y={my} fill={active ? '#fbbf24' : '#94a3b8'} fontSize="10" textAnchor="middle" dominantBaseline="middle">{e.label}</text>
-            </g>
-          )
-        })}
-        {mt.nodes.map((nd) => {
-          const x = (xPos[nd.id] || 0) - nodeW(nd) / 2
-          const y = yFor(nd) - boxH / 2
-          const active = nd.state === 'active'
-          const done = nd.state === 'done'
-          const stroke = active ? '#f59e0b' : done ? '#22c55e' : '#64748b'
-          const fill = active ? '#3b2a12' : done ? '#14291c' : '#1e293b'
-          const text = active ? '#fde68a' : done ? '#bbf7d0' : '#e2e8f0'
-          return (
-            <g key={nd.id}>
-              <rect x={x} y={y} width={nodeW(nd)} height={boxH} rx={4} fill={fill} stroke={stroke} strokeWidth={active ? 2 : 1.5} />
-              {nd.values.map((v, i) => (
-                <g key={i}>
-                  {i > 0 && <line x1={x + i * boxW} y1={y} x2={x + i * boxW} y2={y + boxH} stroke={stroke} strokeWidth="1" />}
-                  <text x={x + i * boxW + boxW / 2} y={y + boxH / 2 + 1} textAnchor="middle" dominantBaseline="middle" fill={text} fontSize="11" fontWeight="600">{v}</text>
-                </g>
-              ))}
-            </g>
-          )
-        })}
-      </svg>
-    </div>
-  )
-}
+  const [arrText, setArrText] = useState("6, 3, 9, 1, 5, 4, 7, 2");
+  const [arr, setArr] = useState<number[]>([6, 3, 9, 1, 5, 4, 7, 2]);
+  const [pivotMode, setPivotMode] = useState<"last" | "first" | "middle" | "random">("last");
+  const [heapType, setHeapType] = useState<"max" | "min">("max");
+  const [mergeView, setMergeView] = useState<"tree" | "bars">("tree");
+  const [stepIdx, setStepIdx] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(5);
 
-export default function SortingVisualizer() {
-  const [algo, setAlgo] = useState<Algo>('merge')
-  const [inputStr, setInputStr] = useState(PRESETS['Merge Example'].join(', '))
-  const [array, setArray] = useState<number[]>(PRESETS['Merge Example'])
-  const [pivotMode, setPivotMode] = useState<PivotMode>('last')
-  const [customPivot, setCustomPivot] = useState('0')
-  const [heapMode, setHeapMode] = useState<'min'|'max'>('max')
-  const [steps, setSteps] = useState<Step[]>(() => genSteps('merge', PRESETS['Merge Example']))
-  const [stepIdx, setStepIdx] = useState(0)
-  const [playing, setPlaying] = useState(false)
-  const [speed, setSpeed] = useState(700)
-  const timerRef = useRef<number | null>(null)
+  const barSteps = useMemo(
+    () => generateSortSteps(arr, algo, pivotMode, heapType),
+    [arr, algo, pivotMode, heapType]
+  );
+  const mergeTreeData = useMemo(() => buildMergeTreeData(arr), [arr]);
 
-  const maxVal = useMemo(() => Math.max(1, ...array), [array])
-  const step = steps[stepIdx] || steps[0]
-
-  const rebuild = (nextAlgo: Algo, nextArr: number[], pm: PivotMode = pivotMode, cp: string = customPivot, hm: 'min'|'max' = heapMode) => {
-    const cpIdx = Math.max(0, Math.min(nextArr.length - 1, Math.round(Number(cp) || 0)))
-    const s = genSteps(nextAlgo, nextArr, pm, cpIdx, hm)
-    setSteps(s)
-    setStepIdx(0)
-    setPlaying(false)
-  }
+  const isMergeTree = algo === "merge-sort" && mergeView === "tree";
+  const totalSteps = isMergeTree ? Math.max(0, mergeTreeData.steps.length - 1) : Math.max(0, barSteps.length - 1);
 
   useEffect(() => {
-    if (!playing) return
-    timerRef.current = window.setInterval(() => {
-      setStepIdx((i) => {
-        if (i >= steps.length - 1) { setPlaying(false); return i }
-        return i + 1
-      })
-    }, speed)
-    return () => { if (timerRef.current) window.clearInterval(timerRef.current) }
-  }, [playing, speed, steps.length])
+    setStepIdx(0);
+    setPlaying(false);
+  }, [arr, algo, pivotMode, heapType, mergeView]);
 
-  const applyInput = () => {
-    const nums = inputStr.split(/[\s,]+/).map((s) => Number(s.trim())).filter((n) => Number.isFinite(n))
-    const trimmed = nums.slice(0, 12).map((n) => Math.max(1, Math.min(99, Math.round(n))))
-    if (trimmed.length < 2) return
-    setArray(trimmed)
-    rebuild(algo, trimmed)
-  }
+  useEffect(() => {
+    if (!playing) return;
+    const t = setInterval(() => {
+      setStepIdx((p) => {
+        if (p >= totalSteps) {
+          setPlaying(false);
+          return p;
+        }
+        return p + 1;
+      });
+    }, 1050 - speed * 90);
+    return () => clearInterval(t);
+  }, [playing, speed, totalSteps]);
 
-  const loadPreset = (name: string) => {
-    const arr = PRESETS[name]
-    setInputStr(arr.join(', '))
-    setArray(arr)
-    rebuild(algo, arr)
-  }
-
-  const shuffle = () => {
-    const arr = Array.from({ length: 8 }, () => Math.floor(Math.random() * 90) + 10)
-    setInputStr(arr.join(', '))
-    setArray(arr)
-    rebuild(algo, arr)
-  }
-
-  const changeAlgo = (a: Algo) => {
-    setAlgo(a)
-    // For merge, prefer the merge example if current is default-ish small? keep current array
-    if (a === 'merge' && array.length > 8) {
-      const trimmed = array.slice(0, 8)
-      setArray(trimmed)
-      setInputStr(trimmed.join(', '))
-      rebuild(a, trimmed)
-    } else {
-      rebuild(a, array)
+  const applyInput = (raw = arrText) => {
+    const parsed = raw
+      .split(/[,\s]+/)
+      .map(Number)
+      .filter((n) => !Number.isNaN(n) && n >= 0)
+      .slice(0, 12);
+    if (parsed.length >= 2) {
+      setArr(parsed);
+      setArrText(parsed.join(", "));
     }
-  }
+  };
 
-  const onPivotModeChange = (pm: PivotMode) => {
-    setPivotMode(pm)
-    rebuild(algo, array, pm, customPivot)
-  }
-  const onCustomPivotChange = (v: string) => {
-    setCustomPivot(v)
-    if (pivotMode === 'custom') rebuild(algo, array, 'custom', v)
-  }
+  const info = SORT_INFO[algo];
+  const curBarStep = barSteps[Math.min(stepIdx, barSteps.length - 1)] ?? barSteps[0];
+  const curMergeStep = mergeTreeData.steps[Math.min(stepIdx, mergeTreeData.steps.length - 1)] ?? mergeTreeData.steps[0];
+  const statusMsg = isMergeTree ? curMergeStep.msg : curBarStep.msg;
+
+  const maxBarVal = Math.max(1, ...curBarStep.arr);
+  const barColors: Record<BarState, string> = {
+    unsorted: "from-indigo-600 to-violet-500 shadow-[0_0_20px_-4px_rgba(99,102,241,0.45)]",
+    active: "from-cyan-600 to-sky-400 shadow-[0_0_20px_-4px_rgba(6,182,212,0.55)]",
+    comparing: "from-amber-600 to-amber-400 shadow-[0_0_20px_-4px_rgba(245,158,11,0.55)]",
+    swap: "from-rose-600 to-pink-500 shadow-[0_0_20px_-4px_rgba(236,72,153,0.6)]",
+    sorted: "from-emerald-600 to-emerald-400 shadow-[0_0_20px_-4px_rgba(16,185,129,0.5)]",
+    pivot: "from-purple-700 to-fuchsia-500 shadow-[0_0_22px_-4px_rgba(168,85,247,0.7)]",
+  };
+
+  // For Merge Tree SVG layout
+  const mergeMaxDepth = Math.max(1, ...mergeTreeData.nodes.map((n) => n.depth));
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
-      <PageHeader title="Sorting Visualizer" description="Step through sorting algorithms. Merge Sort shows the divide-and-conquer tree; Quick Sort lets you choose the pivot." />
+    <div className="space-y-4">
+      <MorphingPillTabs
+        layoutId="sort-algo-tabs"
+        value={algo}
+        onChange={(id) => onSelectTopic(id)}
+        options={[
+          { id: "selection-sort", label: "Selection Sort" },
+          { id: "insertion-sort", label: "Insertion Sort" },
+          { id: "quick-sort", label: "Quick Sort" },
+          { id: "merge-sort", label: "Merge Sort" },
+          { id: "heap-sort", label: "Heap Sort" },
+        ]}
+      />
 
-      <div className="flex flex-wrap gap-2 mb-5">
-        {ALGOS.map((a) => (
-          <button key={a.id} onClick={() => changeAlgo(a.id)} className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${algo === a.id ? 'bg-violet-500/20 text-violet-200 border-violet-500/40' : 'bg-slate-800/60 text-slate-300 border-slate-700 hover:border-slate-500'}`}>
-            {a.name}
-          </button>
-        ))}
-      </div>
+      <VisualizerWorkspace
+        step={stepIdx}
+        totalSteps={totalSteps}
+        statusText={statusMsg}
+        badge={info.name}
+        isPlaying={playing}
+        stage={
+          isMergeTree ? (
+            /* Divide-and-Conquer Tree Diagram matching Reference Image 1 */
+            <div className="overflow-x-auto">
+              <svg viewBox={`0 0 740 ${Math.max(360, (mergeMaxDepth + 1) * 58 + 20)}`} className="w-full min-w-[540px]">
+                <defs>
+                  <marker id="m-arr-slate" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                    <path d="M0,0 L0,6 L6,3 z" fill="#475569" />
+                  </marker>
+                  <marker id="m-arr-amber" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                    <path d="M0,0 L0,6 L6,3 z" fill="#f59e0b" />
+                  </marker>
+                </defs>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_290px] gap-5">
-        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div>
-              <div className="text-sm text-slate-400">Step <span className="text-white font-semibold">{stepIdx + 1}</span> / {steps.length}</div>
-              <div className="text-sm text-slate-300 mt-1 min-h-[40px]">{step.description}</div>
+                {/* Edges */}
+                {mergeTreeData.nodes.map((node) =>
+                  node.parentIds.map((pid) => {
+                    const parent = mergeTreeData.nodes.find((p) => p.id === pid);
+                    if (!parent) return null;
+                    const x1 = parent.x * 740;
+                    const y1 = 28 + parent.depth * 56 + 14;
+                    const x2 = node.x * 740;
+                    const y2 = 28 + node.depth * 56 - 14;
+                    const isActive =
+                      curMergeStep.nodeStates[node.id] === "active" ||
+                      curMergeStep.nodeStates[parent.id] === "active";
+                    return (
+                      <g key={`${pid}-${node.id}`}>
+                        <line
+                          x1={x1}
+                          y1={y1}
+                          x2={x2}
+                          y2={y2}
+                          stroke={isActive ? "#f59e0b" : "#334155"}
+                          strokeWidth={isActive ? 2 : 1.3}
+                          markerEnd={isActive ? "url(#m-arr-amber)" : "url(#m-arr-slate)"}
+                        />
+                        <text
+                          x={(x1 + x2) / 2}
+                          y={(y1 + y2) / 2}
+                          textAnchor="middle"
+                          fill={isActive ? "#fbbf24" : "#64748b"}
+                          fontSize="9"
+                        >
+                          {node.edgeLabel}
+                        </text>
+                      </g>
+                    );
+                  })
+                )}
+
+                {/* Box Nodes */}
+                {mergeTreeData.nodes.map((node) => {
+                  const vals = curMergeStep.nodeValues[node.id] ?? node.vals;
+                  const state = curMergeStep.nodeStates[node.id] ?? "pending";
+                  const cellW = 26;
+                  const totalW = vals.length * cellW;
+                  const x0 = node.x * 740 - totalW / 2;
+                  const y0 = 28 + node.depth * 56 - 13;
+                  const stroke =
+                    state === "active" ? "#f59e0b" : state === "done" ? "#10b981" : "#334155";
+                  const fill =
+                    state === "active" ? "#1e160a" : state === "done" ? "#071f17" : "#121623";
+
+                  return (
+                    <g key={node.id}>
+                      <rect
+                        x={x0}
+                        y={y0}
+                        width={totalW}
+                        height={26}
+                        rx={5}
+                        fill={fill}
+                        stroke={stroke}
+                        strokeWidth={state === "pending" ? 1.2 : 2}
+                      />
+                      {vals.map((v, idx) => (
+                        <g key={idx}>
+                          {idx > 0 && (
+                            <line
+                              x1={x0 + idx * cellW}
+                              y1={y0}
+                              x2={x0 + idx * cellW}
+                              y2={y0 + 26}
+                              stroke={stroke}
+                              strokeOpacity={0.5}
+                            />
+                          )}
+                          <text
+                            x={x0 + idx * cellW + cellW / 2}
+                            y={y0 + 13}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            fill={v === null ? "#475569" : "#f1f5f9"}
+                            fontSize="11"
+                            fontWeight="600"
+                            fontFamily="JetBrains Mono, monospace"
+                          >
+                            {v === null ? "·" : v}
+                          </text>
+                        </g>
+                      ))}
+                    </g>
+                  );
+                })}
+              </svg>
             </div>
-            <div className="text-xs px-2 py-1 rounded bg-slate-800 text-slate-300">{ALGOS.find(a => a.id === algo)?.name}</div>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              {/* For Heap Sort: show live Binary Heap Tree right above the bars! */}
+              {algo === "heap-sort" && (curBarStep.heapSize ?? 0) > 0 && (() => {
+                const hs = curBarStep.heapSize ?? 0;
+                const maxLevel = Math.floor(Math.log2(hs));
+                const svgH = Math.max(120, 26 + maxLevel * 44 + 26);
+                return (
+                <div className="border-b border-white/[0.06] pb-3">
+                  <div className="mb-1 text-center font-mono text-[11px] text-slate-400">
+                    Active {heapType === "max" ? "Max-Heap" : "Min-Heap"} Tree (size {hs})
+                  </div>
+                  <svg viewBox={`0 0 640 ${svgH}`} className="mx-auto w-full max-w-xl">
+                    {curBarStep.arr.slice(0, hs).map((_, i) => {
+                      const level = Math.floor(Math.log2(i + 1));
+                      const posInLevel = i - (Math.pow(2, level) - 1);
+                      const countInLevel = Math.pow(2, level);
+                      const x = ((posInLevel + 0.5) / countInLevel) * 640;
+                      const y = 24 + level * 44;
+                      const li = 2 * i + 1;
+                      const ri = 2 * i + 2;
 
-          <div className="bg-[#0c1324]/80 border border-slate-700/60 rounded-lg backdrop-blur-sm p-2">
-            {algo === 'merge' ? <MergeTreeView step={step} input={array} /> : algo === 'heap' ? <HeapTreeView step={step} /> : <BarView step={step} maxVal={maxVal} />}
-          </div>
+                      const childCoords = (ci: number) => {
+                        const cl = Math.floor(Math.log2(ci + 1));
+                        const cp = ci - (Math.pow(2, cl) - 1);
+                        const cc = Math.pow(2, cl);
+                        return { x: ((cp + 0.5) / cc) * 640, y: 24 + cl * 44 };
+                      };
 
-          <div className="flex flex-wrap items-center gap-2 mt-5 pt-4 border-t border-slate-800">
-            <button onClick={() => { setPlaying(false); setStepIdx(0) }} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200" title="Reset"><RotateCcw size={18} /></button>
-            <button onClick={() => { setPlaying(false); setStepIdx((i) => Math.max(0, i - 1)) }} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200" title="Previous"><StepBack size={18} /></button>
-            <button onClick={() => { if (stepIdx >= steps.length - 1) setStepIdx(0); setPlaying((p) => !p) }} className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium flex items-center gap-2">
-              {playing ? <><Pause size={18} /> Pause</> : <><Play size={18} /> Play</>}
-            </button>
-            <button onClick={() => { setPlaying(false); setStepIdx((i) => Math.min(steps.length - 1, i + 1)) }} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200" title="Next"><StepForward size={18} /></button>
-            <div className="flex items-center gap-2 ml-auto text-sm text-slate-400">
-              <span>Speed</span>
-              <input type="range" min={100} max={1200} step={50} value={1300 - speed} onChange={(e) => setSpeed(1300 - Number(e.target.value))} className="w-28 accent-violet-500" />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3 mt-4 text-xs text-slate-400">
-            {algo === 'merge' ? (
-              <>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slate-500" /> Pending</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-amber-500" /> Active</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-green-500" /> Done</span>
-              </>
-            ) : (
-              <>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-indigo-500" /> Unsorted</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-cyan-500" /> Active</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-amber-500" /> Comparing</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-pink-500" /> Swap/Write</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-green-500" /> Sorted</span>
-                {algo === 'quick' && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-purple-500" /> Pivot</span>}
-                {algo === 'heap' && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-indigo-500" /> In heap</span>}
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-800/80 bg-[#121a2f]/70 backdrop-blur-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_18px_50px_-30px_rgba(0,0,0,0.65)] p-4 sm:p-5 space-y-4">
-          {algo === 'quick' && (
-            <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg p-3">
-              <label className="text-sm font-medium text-violet-200 block mb-2">Choose Pivot Element</label>
-              <select value={pivotMode} onChange={(e) => onPivotModeChange(e.target.value as PivotMode)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 mb-2">
-                <option value="last">Last element</option>
-                <option value="first">First element</option>
-                <option value="middle">Middle element</option>
-                <option value="custom">Custom index</option>
-              </select>
-              {pivotMode === 'custom' && (
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Pivot index (0-based, within current range)</label>
-                  <input value={customPivot} onChange={(e) => onCustomPivotChange(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200" />
+                      return (
+                        <g key={`e-${i}`}>
+                          {li < hs && (
+                            <line
+                              x1={x}
+                              y1={y}
+                              x2={childCoords(li).x}
+                              y2={childCoords(li).y}
+                              stroke="#334155"
+                              strokeWidth="1.5"
+                            />
+                          )}
+                          {ri < hs && (
+                            <line
+                              x1={x}
+                              y1={y}
+                              x2={childCoords(ri).x}
+                              y2={childCoords(ri).y}
+                              stroke="#334155"
+                              strokeWidth="1.5"
+                            />
+                          )}
+                        </g>
+                      );
+                    })}
+                    {curBarStep.arr.slice(0, hs).map((val, i) => {
+                      const level = Math.floor(Math.log2(i + 1));
+                      const posInLevel = i - (Math.pow(2, level) - 1);
+                      const countInLevel = Math.pow(2, level);
+                      const x = ((posInLevel + 0.5) / countInLevel) * 640;
+                      const y = 24 + level * 44;
+                      const st = curBarStep.states[i];
+                      const fill =
+                        st === "swap" ? "#9f1239" : st === "comparing" ? "#92400e" : st === "pivot" ? "#6b21a8" : "#171c2e";
+                      const stroke =
+                        st === "swap" ? "#f43f5e" : st === "comparing" ? "#f59e0b" : st === "pivot" ? "#c084fc" : "#6366f1";
+                      return (
+                        <g key={`n-${i}`}>
+                          <circle cx={x} cy={y} r={16} fill={fill} stroke={stroke} strokeWidth="2" />
+                          <text
+                            x={x}
+                            y={y}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            fill="#fff"
+                            fontSize="11"
+                            fontWeight="700"
+                            fontFamily="JetBrains Mono, monospace"
+                          >
+                            {val}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
                 </div>
-              )}
-              <p className="text-[11px] text-slate-400 mt-2">Quick Sort partitions around the selected pivot. The pivot choice affects the partitioning steps.</p>
-            </div>
-          )}
+                );
+              })()}
 
-          <div>
-            <label className="text-sm font-medium text-slate-300 block mb-2">Array (comma separated, 2-12 values)</label>
-            <textarea value={inputStr} onChange={(e) => setInputStr(e.target.value)} rows={3} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-violet-500" />
-            <div className="flex gap-2 mt-2">
-              <button onClick={applyInput} className="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium">Apply</button>
-              <button onClick={shuffle} className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm flex items-center gap-1.5"><Shuffle size={14} /> Random</button>
-            </div>
-          </div>
-          <div>
-            <div className="text-sm font-medium text-slate-300 mb-2">Presets</div>
-            <div className="flex flex-wrap gap-2">
-              {Object.keys(PRESETS).map((p) => (
-                <button key={p} onClick={() => loadPreset(p)} className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700">{p}</button>
-              ))}
-            </div>
-          </div>
-
-          {algo === 'heap' && (
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-              <label className="text-sm font-medium text-amber-200 block mb-2">Heap Sort Mode</label>
-              <div className="flex gap-2">
-                <button onClick={()=>{setHeapMode('max'); rebuild(algo,array,pivotMode,customPivot,'max')}} className={`px-3 py-1.5 rounded text-sm border ${heapMode==='max'?'bg-amber-500/20 border-amber-500/40 text-amber-200':'bg-slate-900 border-slate-700 text-slate-300'}`}>Max-Heap</button>
-                <button onClick={()=>{setHeapMode('min'); rebuild(algo,array,pivotMode,customPivot,'min')}} className={`px-3 py-1.5 rounded text-sm border ${heapMode==='min'?'bg-amber-500/20 border-amber-500/40 text-amber-200':'bg-slate-900 border-slate-700 text-slate-300'}`}>Min-Heap</button>
+              {/* Bar Chart matching Reference Image 2 */}
+              <div className="flex h-[240px] items-end justify-center gap-2.5 px-2 pt-7 pb-1">
+                {curBarStep.arr.map((val, i) => {
+                  const st = curBarStep.states[i] ?? "unsorted";
+                  const hPx = Math.max(18, Math.round((val / maxBarVal) * 182));
+                  return (
+                    <div key={i} className="flex flex-1 max-w-[66px] flex-col items-center justify-end gap-1.5 h-full">
+                      <span className="font-mono text-xs font-semibold text-slate-300">{val}</span>
+                      <div
+                        style={{ height: `${hPx}px` }}
+                        className={`w-full rounded-t-md bg-gradient-to-t transition-all duration-150 ${barColors[st]}`}
+                      />
+                      <span className="font-mono text-[11px] text-slate-500">{i}</span>
+                    </div>
+                  );
+                })}
               </div>
-              <p className="text-[11px] text-slate-400 mt-2">Max-Heap sorts ascending by extracting max; Min-Heap can be used similarly for descending behavior.</p>
             </div>
-          )}
-          <div className="text-xs text-slate-400 leading-relaxed border-t border-slate-800 pt-4">
-            <div className="font-semibold text-slate-300 mb-1">About {ALGOS.find(a => a.id === algo)?.name}</div>
-            {algo === 'bubble' && 'Repeatedly compares adjacent elements and swaps them if out of order. O(n²).'}
-            {algo === 'selection' && 'Finds the minimum in the unsorted region and swaps it into position. O(n²).'}
-            {algo === 'insertion' && 'Inserts each element into its correct place in the sorted prefix. O(n²) worst case.'}
-            {algo === 'merge' && 'Divides the array into halves, recursively sorts, then merges sorted halves. Stable O(n log n). The tree view shows divide and merge phases.'}
-            {algo === 'quick' && 'Partitions around a chosen pivot, then recursively sorts partitions. Average O(n log n). You can choose which element acts as pivot.'}
-            {algo === 'heap' && `Builds a ${heapMode === 'max' ? 'Max' : 'Min'} Heap, then repeatedly extracts the root to sort. O(n log n).`}
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  )
+          )
+        }
+        controls={
+          <PlaybackDock
+            isPlaying={playing}
+            onTogglePlay={() => {
+              if (stepIdx >= totalSteps) setStepIdx(0);
+              setPlaying((p) => !p);
+            }}
+            onReset={() => { setPlaying(false); setStepIdx(0); }}
+            onStepBack={() => { setPlaying(false); setStepIdx((s) => Math.max(0, s - 1)); }}
+            onStepForward={() => { setPlaying(false); setStepIdx((s) => Math.min(totalSteps, s + 1)); }}
+            canStepBack={stepIdx > 0}
+            canStepForward={stepIdx < totalSteps}
+            speed={speed}
+            onSpeedChange={setSpeed}
+            legend={
+              isMergeTree
+                ? [
+                    { label: "Pending", colorClass: "bg-slate-600" },
+                    { label: "Active", colorClass: "bg-amber-500" },
+                    { label: "Done", colorClass: "bg-emerald-500" },
+                  ]
+                : [
+                    { label: "Unsorted", colorClass: "bg-indigo-500" },
+                    { label: "Active", colorClass: "bg-cyan-500" },
+                    { label: "Comparing", colorClass: "bg-amber-500" },
+                    { label: "Swap / Write", colorClass: "bg-pink-500" },
+                    { label: "Sorted", colorClass: "bg-emerald-500" },
+                    { label: "Pivot", colorClass: "bg-purple-500" },
+                  ]
+            }
+          />
+        }
+        inspector={
+          <>
+            {algo === "quick-sort" && (
+              <InspectorBlock
+                highlight
+                title="Choose Pivot Element"
+                description="Quick Sort partitions around the selected pivot. The pivot choice affects partitioning steps."
+              >
+                <StudioSelect
+                  value={pivotMode}
+                  onChange={(e) => setPivotMode(e.target.value as "last" | "first" | "middle" | "random")}
+                >
+                  <option value="last">Last element</option>
+                  <option value="first">First element</option>
+                  <option value="middle">Middle element</option>
+                  <option value="random">Random element</option>
+                </StudioSelect>
+              </InspectorBlock>
+            )}
+
+            {algo === "merge-sort" && (
+              <InspectorBlock highlight title="Merge Sort Visualization View">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <StudioBtn
+                    variant={mergeView === "tree" ? "primary" : "secondary"}
+                    onClick={() => setMergeView("tree")}
+                  >
+                    Divide Tree
+                  </StudioBtn>
+                  <StudioBtn
+                    variant={mergeView === "bars" ? "primary" : "secondary"}
+                    onClick={() => setMergeView("bars")}
+                  >
+                    Bar Chart
+                  </StudioBtn>
+                </div>
+              </InspectorBlock>
+            )}
+
+            {algo === "heap-sort" && (
+              <InspectorBlock
+                highlight
+                title="Heap Type"
+                description="Max-Heap sorts ascending; Min-Heap extracts minimums for descending order."
+              >
+                <div className="grid grid-cols-2 gap-1.5">
+                  <StudioBtn
+                    variant={heapType === "max" ? "primary" : "secondary"}
+                    onClick={() => setHeapType("max")}
+                  >
+                    Max-Heap (Asc)
+                  </StudioBtn>
+                  <StudioBtn
+                    variant={heapType === "min" ? "primary" : "secondary"}
+                    onClick={() => setHeapType("min")}
+                  >
+                    Min-Heap (Desc)
+                  </StudioBtn>
+                </div>
+              </InspectorBlock>
+            )}
+
+            <InspectorBlock highlight={algo === "selection-sort" || algo === "insertion-sort"} title="Array (comma separated, 2-12 values)">
+              <StudioTextarea
+                rows={2}
+                value={arrText}
+                onChange={(e) => setArrText(e.target.value)}
+                placeholder="6, 3, 9, 1, 5, 4, 7, 2"
+              />
+              <div className="mt-2 flex gap-2">
+                <StudioBtn variant="primary" className="flex-1" onClick={() => applyInput()}>
+                  Apply
+                </StudioBtn>
+                <StudioBtn
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => {
+                    const rand = Array.from({ length: 8 }, () => Math.floor(Math.random() * 18) + 1);
+                    setArr(rand);
+                    setArrText(rand.join(", "));
+                  }}
+                >
+                  Random
+                </StudioBtn>
+              </div>
+            </InspectorBlock>
+
+            <InspectorBlock title="Presets">
+              <PresetRow
+                presets={[
+                  { id: "def", label: "Default" },
+                  { id: "near", label: "Nearly Sorted" },
+                  { id: "rev", label: "Reversed" },
+                  { id: "merge", label: "Merge Example" },
+                ]}
+                onSelect={(id) => {
+                  const map: Record<string, number[]> = {
+                    def: [6, 3, 9, 1, 5, 4, 7, 2],
+                    near: [1, 2, 4, 3, 5, 7, 6, 8],
+                    rev: [9, 8, 7, 6, 5, 4, 3, 2],
+                    merge: [38, 27, 43, 3, 9, 82, 10],
+                  };
+                  const chosen = map[id];
+                  setArr(chosen);
+                  setArrText(chosen.join(", "));
+                }}
+              />
+            </InspectorBlock>
+
+            <InspectorBlock title={`About ${info.name}`}>
+              <p className="text-xs leading-relaxed text-slate-300">{info.about}</p>
+            </InspectorBlock>
+          </>
+        }
+        footerNotes={
+          <ConceptNotesGrid
+            intuition={info.intuition}
+            keyPoints={info.points}
+            complexities={info.complexities}
+          />
+        }
+      />
+    </div>
+  );
 }
