@@ -24,7 +24,7 @@ See [`docs/REPORT.md`](docs/REPORT.md) for a detailed explanation of how the vis
 | Graphics | SVG generated in TSX, `lucide-react` icons |
 | Build | Vite 8 + `vite-plugin-singlefile` (one offline-ready HTML file) |
 | Quality | TypeScript (`npm run typecheck`), oxlint (`npm run lint`) |
-| Hosting | GitHub Actions → GitHub Pages |
+| Hosting | Vercel or GitHub Pages (GitHub Actions) |
 
 ## Project structure
 
@@ -67,7 +67,7 @@ npm run dev   # http://localhost:5173
 
 ## Deployment / offline use
 
-- **GitHub Pages:** enable **Settings → Pages → Source: GitHub Actions**. Pushes to `main` run the workflow, which checks, builds and publishes `dist/`.
+- **GitHub Pages:** first enable **Settings → Pages → Source: GitHub Actions**. Pushes to `main` then run the workflow, which checks, builds and publishes `dist/`. Until Pages is enabled, the workflow still checks and builds but skips the deployment step instead of failing.
 - **Offline:** run `npm run build`, then double-click `dist/index.html`. JavaScript and CSS are inlined, so it works without a server. `dist/` is generated and intentionally not tracked.
 
 ## License
