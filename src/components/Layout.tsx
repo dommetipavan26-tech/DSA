@@ -32,11 +32,12 @@ export default function Layout() {
       <div className="relative z-40 w-[56px] shrink-0 flex flex-col items-center py-4">
         <button
           onClick={() => setOpen((v) => !v)}
-          className="group flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+          className="group relative flex items-center justify-center w-12 h-14 rounded-[50%] bg-gradient-to-b from-violet-500/25 via-fuchsia-500/15 to-cyan-500/20 border border-violet-400/30 shadow-[0_0_28px_rgba(139,92,246,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_0_40px_rgba(139,92,246,0.55),inset_0_1px_0_rgba(255,255,255,0.16)] hover:scale-105 active:scale-95 transition-all duration-300 backdrop-blur-sm"
           aria-label={open ? 'Close sidebar' : 'Open sidebar'}
           title={open ? 'Close sidebar' : 'Open sidebar'}
         >
-          <img src="/sidebar-toggle.png" alt="" className="w-9 h-9 object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.9)] group-hover:drop-shadow-[0_0_16px_rgba(168,85,247,1)] transition-all duration-300" />
+          <span className="absolute inset-[3px] rounded-[50%] border border-white/5 pointer-events-none" />
+          <img src="/sidebar-toggle.png" alt="" className="relative w-7 h-7 object-contain drop-shadow-[0_0_10px_rgba(168,85,247,0.95)] group-hover:drop-shadow-[0_0_16px_rgba(168,85,247,1)] transition-all duration-300" />
         </button>
       </div>
 
