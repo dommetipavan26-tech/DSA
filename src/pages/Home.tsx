@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { ArrowRight, BookOpen, MousePointerClick, Sparkles, Zap } from 'lucide-react'
 import { sections, topics } from '../data/topics'
 import { BackgroundGrid } from '../components/ui/background-grid'
+import { BlurText } from '../components/ui/blur-text'
 import { GlowCard } from '../components/ui/glow-card'
 
 const fadeUp = {
@@ -14,18 +15,18 @@ export default function Home() {
   let cardIndex = 0
   return (
     <div className="relative px-4 sm:px-6 lg:px-10 py-8 max-w-7xl mx-auto">
-      <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-[#121a33] via-[#10172b] to-[#0c1324] p-8 sm:p-12 mb-12">
+      <section className="shimmer-border relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-[#121a33] via-[#10172b] to-[#0c1324] p-8 sm:p-12 mb-12">
         <BackgroundGrid />
         <div className="relative">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-medium mb-5 backdrop-blur-sm">
             <Sparkles size={14} /> Interactive DSA Learning
           </motion.div>
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.05 }} className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight mb-5">
-            Data Structures &amp; Algorithms
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400">
+          <div className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight mb-5">
+            <BlurText text="Data Structures & Algorithms" className="block" delay={0.05} />
+            <motion.span initial={{ opacity: 0, y: 12, filter: 'blur(8px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.5, delay: 0.35 }} className="block text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400">
               Visualizer Lab
-            </span>
-          </motion.h1>
+            </motion.span>
+          </div>
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.1 }} className="text-slate-400 max-w-2xl text-base sm:text-lg leading-relaxed mb-8">
             Explore core DSA concepts through interactive, step-by-step visualizations.
             Build structures, trace algorithms, and understand how they really work.
