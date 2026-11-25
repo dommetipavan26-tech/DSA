@@ -28,21 +28,15 @@ export default function Layout() {
 
   return (
     <div className="h-full min-h-screen bg-[#0b1020] text-slate-200 flex overflow-hidden">
-      {/* Slim rail */}
-      <div className="relative z-40 w-[68px] shrink-0 border-r border-slate-800/80 bg-[#0c1326]/95 backdrop-blur-xl flex flex-col items-center py-4 gap-3">
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="group relative w-11 h-11 rounded-2xl flex items-center justify-center border border-violet-500/20 bg-violet-500/10 hover:bg-violet-500/20 hover:border-violet-400/40 transition-all duration-300 shadow-[0_0_24px_rgba(139,92,246,0.15)]"
-          aria-label={open ? 'Close sidebar' : 'Open sidebar'}
-          title={open ? 'Close sidebar' : 'Open sidebar'}
-        >
-          <img src="/sidebar-toggle.png" alt="" className="w-7 h-7 object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
-        </button>
-
-        <div className="mt-auto pb-1">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" title="Interactive" />
-        </div>
-      </div>
+      {/* Floating toggle */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="fixed top-4 left-4 z-50 group flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+        aria-label={open ? 'Close sidebar' : 'Open sidebar'}
+        title={open ? 'Close sidebar' : 'Open sidebar'}
+      >
+        <img src="/sidebar-toggle.png" alt="" className="w-10 h-10 object-contain drop-shadow-[0_0_12px_rgba(120,160,255,0.55)] group-hover:drop-shadow-[0_0_18px_rgba(120,160,255,0.85)] transition-all duration-300" />
+      </button>
 
       {/* Slide sidebar */}
       <AnimatePresence initial={false}>
@@ -52,10 +46,10 @@ export default function Layout() {
             animate={{ width: 292, opacity: 1, x: 0 }}
             exit={{ width: 0, opacity: 0, x: -12 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed lg:relative left-[68px] lg:left-0 top-0 bottom-0 z-30 shrink-0 border-r border-slate-800/80 bg-[#0f1629]/95 backdrop-blur-xl overflow-hidden shadow-2xl shadow-black/30 lg:shadow-none"
+            className="fixed left-0 top-0 bottom-0 z-40 shrink-0 border-r border-slate-800/80 bg-[#0f1629]/95 backdrop-blur-xl overflow-hidden shadow-2xl shadow-black/40"
           >
             <div className="w-[292px] h-full flex flex-col">
-              <div className="px-4 pt-4 pb-3 border-b border-slate-800/80">
+              <div className="px-4 pt-16 pb-3 border-b border-slate-800/80">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <div className="text-sm font-semibold text-white tracking-tight">DSA Visualizer Lab</div>
@@ -163,7 +157,7 @@ export default function Layout() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/45 z-20 lg:hidden"
+            className="fixed inset-0 bg-black/45 z-30"
             onClick={() => setOpen(false)}
           />
         )}

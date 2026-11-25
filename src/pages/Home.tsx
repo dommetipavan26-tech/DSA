@@ -14,7 +14,7 @@ const fadeUp = {
 export default function Home() {
   let cardIndex = 0
   return (
-    <div className="relative px-4 sm:px-6 lg:px-10 py-8 max-w-7xl mx-auto">
+    <div className="relative px-4 sm:px-6 lg:px-10 pt-14 pb-8 sm:pt-10 max-w-7xl mx-auto">
       <section className="shimmer-border relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-[#121a33] via-[#10172b] to-[#0c1324] p-8 sm:p-12 mb-12">
         <BackgroundGrid />
         <div className="relative">
