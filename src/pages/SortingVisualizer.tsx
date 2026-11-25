@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Play, Pause, RotateCcw, StepForward, StepBack, Shuffle } from 'lucide-react'
 
-type Algo = 'selection' | 'insertion' | 'bubble' | 'merge' | 'quick'
+type Algo = 'selection' | 'insertion' | 'bubble' | 'merge' | 'quick' | 'heap'
 type PivotMode = 'last' | 'first' | 'middle' | 'custom'
 
 interface MergeNode {
@@ -27,14 +27,15 @@ interface Step {
   pivot?: number
   description: string
   mergeTree?: MergeTreeSnapshot
+  heapSize?: number
 }
 
 const ALGOS: { id: Algo; name: string }[] = [
   { id: 'selection', name: 'Selection Sort' },
   { id: 'insertion', name: 'Insertion Sort' },
-  { id: 'bubble', name: 'Bubble Sort' },
-  { id: 'merge', name: 'Merge Sort' },
   { id: 'quick', name: 'Quick Sort' },
+  { id: 'merge', name: 'Merge Sort' },
+  { id: 'heap', name: 'Heap Sort' },
 ]
 
 const PRESETS: Record<string, number[]> = {
@@ -112,7 +113,7 @@ function snapshotMergeTree(mt: MTreeBuild): MergeTreeSnapshot {
   }
 }
 
-function genSteps(algo: Algo, input: number[], pivotMode: PivotMode = 'last', customPivotIndex = 0): Step[] {
+function genSteps(algo: Algo, input: number[], pivotMode: PivotMode = 'last', customPivotIndex = 0, heapMode: 'min' | 'max' = 'max'): Step[] {
   const arr = clone(input)
   const n = arr.length
   const steps: Step[] = []
@@ -131,6 +132,7 @@ function genSteps(algo: Algo, input: number[], pivotMode: PivotMode = 'last', cu
       pivot: s.pivot,
       description: s.description,
       mergeTree: mergeTree ? snapshotMergeTree(mergeTree) : undefined,
+      heapSize: s.heapSize,
     })
   }
 
@@ -274,6 +276,27 @@ function genSteps(algo: Algo, input: number[], pivotMode: PivotMode = 'last', cu
       qs(p + 1, hi)
     }
     qs(0, n - 1)
+
+  } else if (algo === 'heap') {
+    const wantMax = heapMode === 'max'
+    const better = (a:number,b:number) => wantMax ? a > b : a < b
+    const heapify = (size: number, i: number) => {
+      let best = i
+      const l = 2 * i + 1, r = 2 * i + 2
+      if (l < size) { push({ comparing: [best, l], heapSize: size, description: `Compare ${arr[best]} with left child ${arr[l]}.` }); if (better(arr[l], arr[best])) best = l }
+      if (r < size) { push({ comparing: [best, r], heapSize: size, description: `Compare ${arr[best]} with right child ${arr[r]}.` }); if (better(arr[r], arr[best])) best = r }
+      if (best !== i) { [arr[i], arr[best]] = [arr[best], arr[i]]; push({ swapping: [i, best], heapSize: size, description: `Swap ${arr[best]} and ${arr[i]}; heapify down.` }); heapify(size, best) }
+    }
+    push({ description: `Build a ${wantMax ? 'Max' : 'Min'} Heap.`, heapSize: n })
+    for (let i = Math.floor(n / 2) - 1; i >= 0; i--) { push({ active: [i], heapSize: n, description: `Heapify node ${i}.` }); heapify(n, i) }
+    push({ description: `${wantMax ? 'Max' : 'Min'} Heap built.`, heapSize: n })
+    for (let i = n - 1; i > 0; i--) {
+      [arr[0], arr[i]] = [arr[i], arr[0]]
+      sorted.unshift(i)
+      push({ swapping: [0, i], sorted: clone(sorted), heapSize: i, description: `Extract ${wantMax ? 'max' : 'min'} ${arr[i]} to position ${i}.` })
+      heapify(i, 0)
+    }
+    sorted.unshift(0)
   }
 
   const last = steps[steps.length - 1]
@@ -309,6 +332,41 @@ function BarView({ step, maxVal }: { step: Step; maxVal: number }) {
   )
 }
 
+
+function HeapTreeView({ step }: { step: Step }) {
+  const arr = step.array
+  const n = step.heapSize ?? arr.length
+  const levels: number[][] = []
+  let i = 0, lv = 0
+  while (i < arr.length) { const c = Math.pow(2, lv); const row:number[]=[]; for(let k=0;k<c && i<arr.length;k++,i++) row.push(i); levels.push(row); lv++ }
+  const W=800, LH=90, H=Math.max(240, levels.length*LH+50)
+  const pos: Record<number,{x:number;y:number}> = {}
+  levels.forEach((row,li)=>{ const y=45+li*LH; const gap=W/(row.length+1); row.forEach((idx,k)=>pos[idx]={x:gap*(k+1),y}) })
+  const color=(idx:number)=>{
+    if (step.sorted.includes(idx)) return {f:'#14532d',s:'#22c55e',t:'#bbf7d0'}
+    if (step.swapping.includes(idx)) return {f:'#831843',s:'#ec4899',t:'#fbcfe8'}
+    if (step.comparing.includes(idx)) return {f:'#78350f',s:'#f59e0b',t:'#fde68a'}
+    if (step.active.includes(idx)) return {f:'#164e63',s:'#22d3ee',t:'#a5f3fc'}
+    if (idx < n) return {f:'#1e293b',s:'#6366f1',t:'#c7d2fe'}
+    return {f:'#111827',s:'#334155',t:'#64748b'}
+  }
+  return (
+    <div className="w-full overflow-x-auto">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" style={{minWidth:320}}>
+        {arr.map((_,idx)=>[2*idx+1,2*idx+2].filter(c=>c<arr.length).map(c=>(
+          <line key={`${idx}-${c}`} x1={pos[idx].x} y1={pos[idx].y} x2={pos[c].x} y2={pos[c].y} stroke={c<n&&idx<n?'#475569':'#1f2937'} strokeWidth="2" />
+        )))}
+        {arr.map((v,idx)=>{ const p=pos[idx], c=color(idx); return (
+          <g key={idx}>
+            <circle cx={p.x} cy={p.y} r="22" fill={c.f} stroke={c.s} strokeWidth="2.5" />
+            <text x={p.x} y={p.y+1} textAnchor="middle" dominantBaseline="middle" fill={c.t} fontSize="13" fontWeight="700">{v}</text>
+            <text x={p.x} y={p.y+34} textAnchor="middle" fill="#64748b" fontSize="10">[{idx}]</text>
+          </g>
+        )})}
+      </svg>
+    </div>
+  )
+}
 function MergeTreeView({ step, input }: { step: Step; input: number[] }) {
   const mt = step.mergeTree
   if (!mt) return <div className="h-64 flex items-center justify-center text-slate-500">No merge tree data.</div>
@@ -421,6 +479,7 @@ export default function SortingVisualizer() {
   const [array, setArray] = useState<number[]>(PRESETS['Merge Example'])
   const [pivotMode, setPivotMode] = useState<PivotMode>('last')
   const [customPivot, setCustomPivot] = useState('0')
+  const [heapMode, setHeapMode] = useState<'min'|'max'>('max')
   const [steps, setSteps] = useState<Step[]>(() => genSteps('merge', PRESETS['Merge Example']))
   const [stepIdx, setStepIdx] = useState(0)
   const [playing, setPlaying] = useState(false)
@@ -430,9 +489,9 @@ export default function SortingVisualizer() {
   const maxVal = useMemo(() => Math.max(1, ...array), [array])
   const step = steps[stepIdx] || steps[0]
 
-  const rebuild = (nextAlgo: Algo, nextArr: number[], pm: PivotMode = pivotMode, cp: string = customPivot) => {
+  const rebuild = (nextAlgo: Algo, nextArr: number[], pm: PivotMode = pivotMode, cp: string = customPivot, hm: 'min'|'max' = heapMode) => {
     const cpIdx = Math.max(0, Math.min(nextArr.length - 1, Math.round(Number(cp) || 0)))
-    const s = genSteps(nextAlgo, nextArr, pm, cpIdx)
+    const s = genSteps(nextAlgo, nextArr, pm, cpIdx, hm)
     setSteps(s)
     setStepIdx(0)
     setPlaying(false)
@@ -519,7 +578,7 @@ export default function SortingVisualizer() {
           </div>
 
           <div className="bg-[#0c1324] border border-slate-800 rounded-lg p-2">
-            {algo === 'merge' ? <MergeTreeView step={step} input={array} /> : <BarView step={step} maxVal={maxVal} />}
+            {algo === 'merge' ? <MergeTreeView step={step} input={array} /> : algo === 'heap' ? <HeapTreeView step={step} /> : <BarView step={step} maxVal={maxVal} />}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 mt-5 pt-4 border-t border-slate-800">
@@ -550,6 +609,7 @@ export default function SortingVisualizer() {
                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-pink-500" /> Swap/Write</span>
                 <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-green-500" /> Sorted</span>
                 {algo === 'quick' && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-purple-500" /> Pivot</span>}
+                {algo === 'heap' && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-indigo-500" /> In heap</span>}
               </>
             )}
           </div>
@@ -591,6 +651,17 @@ export default function SortingVisualizer() {
               ))}
             </div>
           </div>
+
+          {algo === 'heap' && (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+              <label className="text-sm font-medium text-amber-200 block mb-2">Heap Sort Mode</label>
+              <div className="flex gap-2">
+                <button onClick={()=>{setHeapMode('max'); rebuild(algo,array,pivotMode,customPivot,'max')}} className={`px-3 py-1.5 rounded text-sm border ${heapMode==='max'?'bg-amber-500/20 border-amber-500/40 text-amber-200':'bg-slate-900 border-slate-700 text-slate-300'}`}>Max-Heap</button>
+                <button onClick={()=>{setHeapMode('min'); rebuild(algo,array,pivotMode,customPivot,'min')}} className={`px-3 py-1.5 rounded text-sm border ${heapMode==='min'?'bg-amber-500/20 border-amber-500/40 text-amber-200':'bg-slate-900 border-slate-700 text-slate-300'}`}>Min-Heap</button>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-2">Max-Heap sorts ascending by extracting max; Min-Heap can be used similarly for descending behavior.</p>
+            </div>
+          )}
           <div className="text-xs text-slate-400 leading-relaxed border-t border-slate-800 pt-4">
             <div className="font-semibold text-slate-300 mb-1">About {ALGOS.find(a => a.id === algo)?.name}</div>
             {algo === 'bubble' && 'Repeatedly compares adjacent elements and swaps them if out of order. O(n²).'}
@@ -598,6 +669,7 @@ export default function SortingVisualizer() {
             {algo === 'insertion' && 'Inserts each element into its correct place in the sorted prefix. O(n²) worst case.'}
             {algo === 'merge' && 'Divides the array into halves, recursively sorts, then merges sorted halves. Stable O(n log n). The tree view shows divide and merge phases.'}
             {algo === 'quick' && 'Partitions around a chosen pivot, then recursively sorts partitions. Average O(n log n). You can choose which element acts as pivot.'}
+            {algo === 'heap' && `Builds a ${heapMode === 'max' ? 'Max' : 'Min'} Heap, then repeatedly extracts the root to sort. O(n log n).`}
           </div>
         </div>
       </div>

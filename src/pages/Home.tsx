@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, BookOpen, MousePointerClick, Zap } from 'lucide-react'
-import { topics } from '../data/topics'
+import { sections, topics } from '../data/topics'
 
 export default function Home() {
   return (
@@ -20,7 +20,7 @@ export default function Home() {
           </h1>
           <p className="text-slate-400 max-w-2xl text-base sm:text-lg leading-relaxed mb-6">
             Explore core DSA concepts through interactive, step-by-step visualizations.
-            Build trees, run sorts, trace traversals, and understand how algorithms really work.
+            Build structures, trace algorithms, and understand how they really work.
           </p>
           <div className="flex flex-wrap gap-4 text-sm text-slate-400">
             <div className="flex items-center gap-2"><BookOpen size={16} className="text-violet-400" /> {topics.length} visualizers</div>
@@ -30,46 +30,38 @@ export default function Home() {
         </div>
       </section>
 
-      <section>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-semibold text-white">Explore Topics</h2>
-          <span className="text-sm text-slate-500">Pick a topic to start</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {topics.map((t) => {
-            const Icon = t.icon
-            return (
-              <Link
-                key={t.id}
-                to={t.path}
-                className="group relative rounded-xl border border-slate-800 bg-[#121a2f]/80 hover:bg-[#16203a] hover:border-slate-700 transition-all p-5 flex flex-col"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: `${t.color}1a`, color: t.color }}
-                  >
-                    <Icon size={22} />
-                  </div>
-                  <ArrowRight size={18} className="text-slate-600 group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all" />
-                </div>
-                <h3 className="text-white font-semibold mb-1.5">{t.title}</h3>
-                <p className="text-sm text-slate-400 leading-relaxed mb-4 flex-1">{t.description}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {t.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700/50"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </Link>
-            )
-          })}
-        </div>
-      </section>
+      <div className="space-y-10">
+        {sections.map((sec) => (
+          <section key={sec.id}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white">{sec.title}</h2>
+              <span className="text-sm text-slate-500">{sec.topics.length} topic{sec.topics.length > 1 ? 's' : ''}</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {sec.topics.map((t) => {
+                const Icon = t.icon
+                return (
+                  <Link key={t.id} to={t.path} className="group relative rounded-xl border border-slate-800 bg-[#121a2f]/80 hover:bg-[#16203a] hover:border-slate-700 transition-all p-5 flex flex-col">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${t.color}1a`, color: t.color }}>
+                        <Icon size={22} />
+                      </div>
+                      <ArrowRight size={18} className="text-slate-600 group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                    <h3 className="text-white font-semibold mb-1.5">{t.title}</h3>
+                    <p className="text-sm text-slate-400 leading-relaxed mb-4 flex-1">{t.description}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {t.tags.map((tag) => (
+                        <span key={tag} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700/50">{tag}</span>
+                      ))}
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
     </div>
   )
 }
