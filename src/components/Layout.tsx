@@ -9,7 +9,7 @@ function SidebarToggleIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="3.5" y="4.5" width="17" height="15" rx="3.2" />
-      <path d="M9 4.5v15" />
+      <path d="M8.5 4.5v15" />
     </svg>
   )
 }
