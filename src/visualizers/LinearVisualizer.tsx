@@ -76,31 +76,31 @@ function ArrayVisualizer() {
       badge={`Length: ${items.length}`}
       statusText={status}
       stage={
-        <div className="flex min-h-[220px] flex-wrap items-center justify-center gap-2.5 py-6">
+        <div className="flex min-h-[220px] flex-wrap items-center justify-center gap-3 py-6">
           <AnimatePresence mode="popLayout">
             {items.length === 0 ? (
-              <div className="text-sm text-slate-500">Array is empty. Add elements from the right panel.</div>
+              <div className="text-sm text-[#85858b]">Array is empty — add elements from Input &amp; controls</div>
             ) : (
               items.map((v, i) => (
                 <motion.div
                   key={`${i}-${v}`}
                   layout
-                  initial={{ scale: 0.75, opacity: 0 }}
+                  initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.7, opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 360, damping: 24 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
                   className="flex flex-col items-center gap-1.5"
                 >
                   <div
-                    className={`flex h-14 min-w-[54px] items-center justify-center rounded-xl border-2 px-3 font-mono text-base font-bold transition-colors ${
+                    className={`flex h-14 min-w-[54px] items-center justify-center rounded-xl border-2 px-3 font-mono text-base font-medium tabular-nums transition-colors duration-150 ${
                       highlightIdx === i
                         ? "border-emerald-400 bg-emerald-500/20 text-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.35)]"
-                        : "border-violet-500/50 bg-[#141828] text-slate-100"
+                        : "border-violet-500/55 bg-[#19191b] text-[#ededed] shadow-[0_0_14px_rgba(139,92,246,0.2)]"
                     }`}
                   >
                     {v}
                   </div>
-                  <span className="font-mono text-[11px] text-slate-400">[{i}]</span>
+                  <span className="font-mono text-xs tabular-nums text-[#85858b]">[{i}]</span>
                 </motion.div>
               ))
             )}
@@ -119,11 +119,11 @@ function ArrayVisualizer() {
           <InspectorBlock title="Insert / Delete / Search">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="mb-1 block text-[11px] text-slate-400">Value</label>
+                <label className="mb-1 block text-xs text-[#a1a1a6]">Value</label>
                 <StudioInput type="number" value={valInput} onChange={(e) => setValInput(e.target.value)} />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] text-slate-400">Index</label>
+                <label className="mb-1 block text-xs text-[#a1a1a6]">Index</label>
                 <StudioInput type="number" value={idxInput} onChange={(e) => setIdxInput(e.target.value)} />
               </div>
             </div>
@@ -274,111 +274,140 @@ function LinkedListVisualizer({ kind }: { kind: "singly" | "doubly" | "circular"
       badge={`${nodes.length} Nodes`}
       statusText={status}
       stage={
-        <div className="flex min-h-[240px] flex-col items-center justify-center gap-4 py-4">
+        <div className="flex min-h-[240px] w-full min-w-0 flex-col items-center justify-center gap-4 py-4">
           {nodes.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-white/15 px-4 py-3 font-mono text-xs text-slate-400">
+            <div className="rounded-lg border border-dashed border-[#ededed]/15 px-4 py-3 font-mono text-xs text-[#85858b]">
               HEAD -&gt; NULL
             </div>
           ) : kind === "circular" ? (
-            <div className="flex flex-col items-center gap-3 w-full">
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                {nodes.map((val, i) => (
-                  <React.Fragment key={`${i}-${val}`}>
-                    <motion.div
-                      layout
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="relative flex flex-col items-center"
-                    >
-                      {i === 0 && (
-                        <span className="mb-1 rounded bg-violet-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold text-violet-300">
-                          HEAD
-                        </span>
-                      )}
-                      {i === nodes.length - 1 && i !== 0 && (
-                        <span className="mb-1 rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-300">
-                          TAIL
-                        </span>
-                      )}
-                      <div
-                        className={`flex overflow-hidden rounded-lg border-2 ${
-                          hlIdx === i
-                            ? "border-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.4)]"
-                            : "border-sky-400/60"
-                        }`}
+            <div className="flex w-full min-w-0 flex-col items-center gap-4">
+              <div className="w-full min-w-0 overflow-x-auto pb-1">
+                <div className="mx-auto flex w-max min-w-full flex-nowrap items-center justify-center gap-1.5 px-1 pt-7">
+                  {nodes.map((val, i) => (
+                    <React.Fragment key={`${i}-${val}`}>
+                      <motion.div
+                        layout
+                        initial={{ scale: 0.92, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                        className="relative flex shrink-0 flex-col items-center"
                       >
-                        <div className="bg-[#151a2c] px-3.5 py-2 font-mono text-sm font-bold text-white">
-                          {val}
+                        {i === 0 && (
+                          <span className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-violet-500/20 px-1.5 py-0.5 font-mono text-xs font-medium text-violet-300">
+                            HEAD
+                          </span>
+                        )}
+                        {i === nodes.length - 1 && i !== 0 && (
+                          <span className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-xs font-medium text-amber-300">
+                            TAIL
+                          </span>
+                        )}
+                        <div
+                          className={`flex overflow-hidden rounded-lg border-2 transition-colors duration-150 ${
+                            hlIdx === i
+                              ? "border-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.4)]"
+                              : "border-sky-400/60 shadow-[0_0_14px_rgba(56,189,248,0.2)]"
+                          }`}
+                        >
+                          <div className="bg-[#19191b] px-3 py-1.5 font-mono text-sm font-medium tabular-nums text-[#ededed]">
+                            {val}
+                          </div>
+                          <div className="flex items-center border-l border-[#ededed]/[0.08] bg-[#141415] px-1.5 font-mono text-xs text-[#85858b]">
+                            {i === nodes.length - 1 ? "head" : "next"}
+                          </div>
                         </div>
-                        <div className="flex items-center border-l border-white/10 bg-[#0c0f19] px-2 font-mono text-[10px] text-slate-400">
-                          {i === nodes.length - 1 ? "head" : "next"}
-                        </div>
-                      </div>
-                    </motion.div>
-                    {i < nodes.length - 1 && <ArrowRight className="h-4 w-4 text-sky-400" />}
-                  </React.Fragment>
-                ))}
+                      </motion.div>
+                      {i < nodes.length - 1 && (
+                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-sky-400" strokeWidth={1.5} />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
               </div>
-              <div className="flex items-center gap-2 rounded-full border border-amber-500/35 bg-amber-500/10 px-3 py-1 font-mono text-[11px] text-amber-300">
-                <span>Circular Return Link: TAIL ({nodes[nodes.length - 1]}) -&gt; HEAD ({nodes[0]})</span>
+              <div className="flex items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-1.5 font-mono text-xs text-amber-300">
+                <span>Circular return link: TAIL ({nodes[nodes.length - 1]}) -&gt; HEAD ({nodes[0]})</span>
               </div>
             </div>
           ) : (
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {kind === "doubly" && (
-                <>
-                  <span className="rounded-md border border-dashed border-white/15 px-2.5 py-2 font-mono text-xs text-slate-400">
-                    NULL
-                  </span>
-                  <ArrowLeftRight className="h-4 w-4 text-slate-500" />
-                </>
-              )}
-              <AnimatePresence mode="popLayout">
-                {nodes.map((val, i) => (
-                  <React.Fragment key={`${i}-${val}`}>
-                    <motion.div
-                      layout
-                      initial={{ scale: 0.78, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.75, opacity: 0 }}
-                      className="flex flex-col items-center"
-                    >
-                      <span className="mb-1 h-4 font-mono text-[10px] font-bold text-violet-300">
-                        {i === 0 ? "HEAD" : i === nodes.length - 1 ? "TAIL" : ""}
-                      </span>
-                      <div
-                        className={`flex overflow-hidden rounded-lg border-2 ${
-                          hlIdx === i
-                            ? "border-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.4)]"
-                            : "border-violet-500/55"
-                        }`}
+            <div className="w-full min-w-0 overflow-x-auto pb-1">
+              <div
+                className={`mx-auto flex w-max min-w-full flex-nowrap items-center justify-center pt-7 ${
+                  kind === "doubly" ? "gap-0.5" : "gap-1.5 px-1"
+                }`}
+              >
+                {kind === "doubly" && (
+                  <>
+                    <span className="shrink-0 rounded-md border border-dashed border-[#ededed]/20 px-1.5 py-1.5 font-mono text-[11px] text-[#a1a1a6]">
+                      NULL
+                    </span>
+                    <ArrowLeftRight className="h-3 w-3 shrink-0 text-[#85858b]" strokeWidth={1.5} />
+                  </>
+                )}
+                <AnimatePresence mode="popLayout">
+                  {nodes.map((val, i) => (
+                    <React.Fragment key={`${i}-${val}`}>
+                      <motion.div
+                        layout
+                        initial={{ scale: 0.92, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.92, opacity: 0 }}
+                        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                        className="relative flex shrink-0 flex-col items-center"
                       >
-                        {kind === "doubly" && (
-                          <div className="flex items-center border-r border-white/10 bg-[#0c0f19] px-1.5 font-mono text-[10px] text-slate-400">
-                            prev
-                          </div>
+                        {(i === 0 || i === nodes.length - 1) && (
+                          <span className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-xs font-medium text-violet-300">
+                            {i === 0 ? "HEAD" : "TAIL"}
+                          </span>
                         )}
-                        <div className="bg-[#151a2c] px-3.5 py-2 font-mono text-sm font-bold text-white">
-                          {val}
+                        <div
+                          className={`flex overflow-hidden rounded-lg border-2 transition-colors duration-150 ${
+                            hlIdx === i
+                              ? "border-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.4)]"
+                              : "border-violet-500/55 shadow-[0_0_14px_rgba(139,92,246,0.22)]"
+                          }`}
+                        >
+                          {kind === "doubly" && (
+                            <div className="flex items-center border-r border-[#ededed]/[0.08] bg-[#141415] px-1 font-mono text-[11px] text-[#85858b]">
+                              prev
+                            </div>
+                          )}
+                          <div
+                            className={`bg-[#19191b] py-1.5 font-mono font-medium tabular-nums text-[#ededed] ${
+                              kind === "doubly" ? "px-1.5 text-[13px]" : "px-3 text-sm"
+                            }`}
+                          >
+                            {val}
+                          </div>
+                          <div
+                            className={`flex items-center border-l border-[#ededed]/[0.08] bg-[#141415] font-mono text-[#85858b] ${
+                              kind === "doubly" ? "px-1 text-[11px]" : "px-1.5 text-xs"
+                            }`}
+                          >
+                            next
+                          </div>
                         </div>
-                        <div className="flex items-center border-l border-white/10 bg-[#0c0f19] px-2 font-mono text-[10px] text-slate-400">
-                          next
-                        </div>
-                      </div>
-                    </motion.div>
-                    {i < nodes.length - 1 &&
-                      (kind === "doubly" ? (
-                        <ArrowLeftRight className="mt-4 h-4 w-4 text-sky-400" />
-                      ) : (
-                        <ArrowRight className="mt-4 h-4 w-4 text-sky-400" />
-                      ))}
-                  </React.Fragment>
-                ))}
-              </AnimatePresence>
-              <ArrowRight className="mt-4 h-4 w-4 text-slate-500" />
-              <span className="mt-4 rounded-md border border-dashed border-white/15 px-2.5 py-2 font-mono text-xs text-slate-400">
-                NULL
-              </span>
+                      </motion.div>
+                      {i < nodes.length - 1 &&
+                        (kind === "doubly" ? (
+                          <ArrowLeftRight className="h-3 w-3 shrink-0 text-sky-400" strokeWidth={1.5} />
+                        ) : (
+                          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-sky-400" strokeWidth={1.5} />
+                        ))}
+                    </React.Fragment>
+                  ))}
+                </AnimatePresence>
+                <ArrowRight
+                  className={`shrink-0 text-[#85858b] ${kind === "doubly" ? "h-3 w-3" : "h-3.5 w-3.5"}`}
+                  strokeWidth={1.5}
+                />
+                <span
+                  className={`shrink-0 rounded-md border border-dashed border-[#ededed]/20 py-1.5 font-mono text-[#a1a1a6] ${
+                    kind === "doubly" ? "px-1.5 text-[11px]" : "px-2 text-xs"
+                  }`}
+                >
+                  NULL
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -395,11 +424,11 @@ function LinkedListVisualizer({ kind }: { kind: "singly" | "doubly" | "circular"
           <InspectorBlock title="Node Operations">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="mb-1 block text-[11px] text-slate-400">Value</label>
+                <label className="mb-1 block text-xs text-[#a1a1a6]">Value</label>
                 <StudioInput type="number" value={valInput} onChange={(e) => setValInput(e.target.value)} />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] text-slate-400">Index</label>
+                <label className="mb-1 block text-xs text-[#a1a1a6]">Index</label>
                 <StudioInput type="number" value={idxInput} onChange={(e) => setIdxInput(e.target.value)} />
               </div>
             </div>
@@ -544,7 +573,7 @@ function StackVisualizer() {
         stack: [...s],
         tokenIdx: tokens.length,
         tokens,
-        msg: `Evaluation complete! Final Answer = ${s[0]}`,
+        msg: `Evaluation complete — final answer = ${s[0]}`,
       });
     }
     return steps;
@@ -554,14 +583,14 @@ function StackVisualizer() {
     const v = Number(valInput);
     if (Number.isNaN(v)) return;
     setStack((p) => [...p, v]);
-    setStatus(`Pushed ${v} onto TOP of stack.`);
+    setStatus(`Pushed ${v} onto TOP of stack`);
   };
 
   const popVal = () => {
-    if (!stack.length) return setStatus("Stack Underflow! Cannot pop from an empty stack.");
+    if (!stack.length) return setStatus("Stack underflow — cannot pop from an empty stack");
     const top = stack[stack.length - 1];
     setStack((p) => p.slice(0, -1));
-    setStatus(`Popped ${top} from TOP.`);
+    setStatus(`Popped ${top} from TOP`);
   };
 
   const curPf = pfSteps[pfIdx] ?? pfSteps[0];
@@ -587,28 +616,28 @@ function StackVisualizer() {
           statusText={status}
           stage={
             <div className="flex min-h-[260px] flex-col items-center justify-center py-4">
-              <div className="mb-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-violet-300">
-                Top of Stack
+              <div className="mb-2 font-mono text-xs font-medium text-amber-400">
+                Top of stack
               </div>
-              <div className="flex min-h-[200px] w-52 flex-col-reverse justify-start gap-2 rounded-b-xl border-x-2 border-b-2 border-white/[0.16] bg-[#0d101b] p-3">
+              <div className="flex min-h-[200px] w-52 flex-col-reverse justify-start gap-2 rounded-b-xl border-x border-b border-[#ededed]/[0.14] bg-[#141415] p-3">
                 <AnimatePresence>
                   {stack.map((item, i) => {
                     const isTop = i === stack.length - 1;
                     return (
                       <motion.div
                         key={`${i}-${item}`}
-                        initial={{ y: -24, opacity: 0 }}
+                        initial={{ y: -12, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -24, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 360, damping: 24 }}
-                        className={`flex items-center justify-between rounded-lg border px-4 py-2 font-mono text-sm font-bold ${
+                        exit={{ y: -12, opacity: 0 }}
+                        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                        className={`flex items-center justify-between rounded-lg border-2 px-4 py-2 font-mono text-sm font-medium tabular-nums ${
                           isTop
                             ? "border-violet-400 bg-violet-500/20 text-white shadow-[0_0_16px_rgba(124,58,237,0.35)]"
-                            : "border-white/[0.08] bg-[#161a2a] text-slate-300"
+                            : "border-[#ededed]/[0.1] bg-[#19191b] text-[#a1a1a6]"
                         }`}
                       >
                         <span>{item}</span>
-                        {isTop && <span className="text-[10px] text-violet-300">TOP</span>}
+                        {isTop && <span className="text-xs text-violet-300">TOP</span>}
                       </motion.div>
                     );
                   })}
@@ -693,12 +722,12 @@ function StackVisualizer() {
                 {curPf.tokens.map((tok, i) => (
                   <div
                     key={`${tok}-${i}`}
-                    className={`rounded-lg border px-3 py-1.5 font-mono text-sm font-bold transition-all ${
+                    className={`rounded-lg border px-3 py-1.5 font-mono text-sm font-medium transition-colors duration-150 ${
                       i === curPf.tokenIdx
-                        ? "border-amber-400 bg-amber-500/20 text-amber-200 scale-110"
+                        ? "border-amber-500 bg-amber-500/15 text-amber-300"
                         : i < curPf.tokenIdx
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300/70"
-                        : "border-white/[0.1] bg-[#141828] text-slate-300"
+                        ? "border-[#4cc38a]/35 bg-[#4cc38a]/10 text-[#4cc38a]"
+                        : "border-[#ededed]/[0.08] bg-[#19191b] text-[#a1a1a6]"
                     }`}
                   >
                     {tok}
@@ -706,15 +735,15 @@ function StackVisualizer() {
                 ))}
               </div>
               {/* Stack */}
-              <div className="flex min-h-[170px] w-48 flex-col-reverse gap-2 rounded-b-xl border-x-2 border-b-2 border-white/[0.16] bg-[#0d101b] p-3">
+              <div className="flex min-h-[170px] w-48 flex-col-reverse gap-2 rounded-b-xl border-x border-b border-[#ededed]/[0.14] bg-[#141415] p-3">
                 {curPf.stack.map((v, i) => (
                   <motion.div
                     key={`${i}-${v}`}
                     layout
-                    className={`rounded-lg border px-3 py-2 text-center font-mono text-sm font-bold ${
+                    className={`rounded-lg border-2 px-3 py-2 text-center font-mono text-sm font-medium tabular-nums ${
                       i === curPf.stack.length - 1
-                        ? "border-violet-400 bg-violet-500/20 text-white"
-                        : "border-white/[0.08] bg-[#161a2a] text-slate-300"
+                        ? "border-violet-400 bg-violet-500/20 text-white shadow-[0_0_16px_rgba(124,58,237,0.35)]"
+                        : "border-[#ededed]/[0.1] bg-[#19191b] text-[#a1a1a6]"
                     }`}
                   >
                     {v}
@@ -734,9 +763,9 @@ function StackVisualizer() {
                   </StudioBtn>
                   <StudioBtn variant="secondary" disabled={pfIdx >= pfSteps.length - 1} onClick={() => { setPlaying(false); setPfIdx((i) => Math.min(pfSteps.length - 1, i + 1)); }}>Step</StudioBtn>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
+                <div className="flex items-center gap-2 text-xs text-[#a1a1a6]">
                   <span>Speed</span>
-                  <input type="range" min={1} max={10} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} className="w-24 accent-violet-500" />
+                  <input type="range" min={1} max={10} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} aria-label="Postfix evaluation speed" className="w-24 accent-amber-500" />
                 </div>
               </div>
             </div>
@@ -814,29 +843,30 @@ function QueueFamilyVisualizer({ kind }: { kind: "queue" | "deque" | "pqueue" })
         stage={
           <div className="mx-auto flex max-w-md flex-col gap-2 py-4">
             {sorted.length === 0 ? (
-              <div className="py-12 text-center text-sm text-slate-500">Priority queue is empty.</div>
+              <div className="py-12 text-center text-sm text-[#85858b]">Priority queue is empty</div>
             ) : (
               sorted.map((it, idx) => (
                 <motion.div
                   key={`${it.label}-${it.pri}-${idx}`}
                   layout
-                  initial={{ opacity: 0, x: -12 }}
+                  initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className={`flex items-center justify-between rounded-xl border px-4 py-2.5 ${
+                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                  className={`flex items-center justify-between rounded-xl border-2 px-4 py-2.5 ${
                     idx === 0
-                      ? "border-violet-400 bg-violet-500/15 text-white"
-                      : "border-white/[0.08] bg-[#131726] text-slate-200"
+                      ? "border-violet-400 bg-violet-500/15 text-white shadow-[0_0_16px_rgba(124,58,237,0.3)]"
+                      : "border-[#ededed]/[0.08] bg-[#19191b] text-[#a1a1a6]"
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
                     {idx === 0 && (
-                      <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-300">
+                      <span className="rounded bg-[#4cc38a]/15 px-1.5 py-0.5 font-mono text-xs font-medium text-[#4cc38a]">
                         NEXT
                       </span>
                     )}
                     <span className="text-sm font-medium">{it.label}</span>
                   </div>
-                  <span className="rounded-md border border-violet-400/30 bg-violet-500/15 px-2.5 py-0.5 font-mono text-xs font-bold text-violet-300">
+                  <span className="rounded-md border border-[#ededed]/[0.08] bg-[#232325] px-2.5 py-0.5 font-mono text-xs font-medium tabular-nums text-amber-300">
                     P = {it.pri}
                   </span>
                 </motion.div>
@@ -884,11 +914,11 @@ function QueueFamilyVisualizer({ kind }: { kind: "queue" | "deque" | "pqueue" })
             <InspectorBlock title="Insert / Extract">
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2">
-                  <label className="mb-1 block text-[11px] text-slate-400">Item</label>
+                  <label className="mb-1 block text-xs text-[#a1a1a6]">Item</label>
                   <StudioInput value={pqName} onChange={(e) => setPqName(e.target.value)} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[11px] text-slate-400">Priority</label>
+                  <label className="mb-1 block text-xs text-[#a1a1a6]">Priority</label>
                   <StudioInput type="number" value={pqPri} onChange={(e) => setPqPri(e.target.value)} />
                 </div>
               </div>
@@ -899,7 +929,7 @@ function QueueFamilyVisualizer({ kind }: { kind: "queue" | "deque" | "pqueue" })
                   onClick={() => {
                     if (!pqName.trim()) return;
                     setPqItems((prev) => [...prev, { label: pqName.trim(), pri: Number(pqPri) || 1 }]);
-                    setStatus(`Inserted "${pqName}" with priority ${pqPri}.`);
+                    setStatus(`Inserted "${pqName}" with priority ${pqPri}`);
                   }}
                 >
                   Insert
@@ -908,13 +938,13 @@ function QueueFamilyVisualizer({ kind }: { kind: "queue" | "deque" | "pqueue" })
                   variant="danger"
                   className="flex-1"
                   onClick={() => {
-                    if (!sorted.length) return setStatus("Empty!");
+                    if (!sorted.length) return setStatus("Priority queue is empty");
                     const top = sorted[0];
                     setPqItems((prev) => {
                       const i = prev.findIndex((x) => x.label === top.label && x.pri === top.pri);
                       return i >= 0 ? [...prev.slice(0, i), ...prev.slice(i + 1)] : prev;
                     });
-                    setStatus(`Extracted "${top.label}" (Priority ${top.pri}).`);
+                    setStatus(`Extracted "${top.label}" (Priority ${top.pri})`);
                   }}
                 >
                   Extract {pqMode === "min" ? "Min" : "Max"}
@@ -948,14 +978,14 @@ function QueueFamilyVisualizer({ kind }: { kind: "queue" | "deque" | "pqueue" })
       statusText={status}
       stage={
         <div className="flex min-h-[220px] flex-col items-center justify-center gap-4 py-6">
-          <div className="flex w-full max-w-xl items-center justify-between font-mono text-[11px] font-semibold">
-            <span className="text-emerald-400">FRONT {kind === "deque" ? "(Add / Remove)" : "(Dequeue)"}</span>
+          <div className="flex w-full max-w-xl items-center justify-between font-mono text-xs font-medium">
+            <span className="text-[#4cc38a]">FRONT {kind === "deque" ? "(Add / Remove)" : "(Dequeue)"}</span>
             <span className="text-amber-400">REAR {kind === "deque" ? "(Add / Remove)" : "(Enqueue)"}</span>
           </div>
-          <div className="flex min-h-[82px] w-full max-w-xl flex-wrap items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-[#0c0f19] p-3">
+          <div className="flex min-h-[84px] w-full max-w-xl flex-wrap items-center justify-center gap-2 rounded-xl border border-[#ededed]/[0.1] bg-[#141415] p-3">
             <AnimatePresence mode="popLayout">
               {items.length === 0 ? (
-                <span className="text-sm text-slate-500">Empty</span>
+                <span className="text-sm text-[#85858b]">Empty</span>
               ) : (
                 items.map((v, i) => {
                   const isF = i === 0;
@@ -964,20 +994,21 @@ function QueueFamilyVisualizer({ kind }: { kind: "queue" | "deque" | "pqueue" })
                     <motion.div
                       key={`${i}-${v}`}
                       layout
-                      initial={{ scale: 0.78, opacity: 0 }}
+                      initial={{ scale: 0.92, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.72, opacity: 0 }}
-                      className={`flex flex-col items-center rounded-lg border-2 px-4 py-2 font-mono text-sm font-bold ${
+                      exit={{ scale: 0.92, opacity: 0 }}
+                      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                      className={`flex flex-col items-center rounded-lg border-2 px-4 py-2 font-mono text-sm font-medium tabular-nums ${
                         isF
-                          ? "border-emerald-400 bg-emerald-500/15 text-emerald-200"
+                          ? "border-emerald-400 bg-emerald-500/15 text-emerald-200 shadow-[0_0_14px_rgba(16,185,129,0.3)]"
                           : isR
-                          ? "border-amber-400 bg-amber-500/15 text-amber-200"
-                          : "border-white/[0.12] bg-[#161a2b] text-slate-200"
+                          ? "border-amber-400 bg-amber-500/15 text-amber-200 shadow-[0_0_14px_rgba(245,158,11,0.3)]"
+                          : "border-violet-500/40 bg-[#19191b] text-[#ededed]"
                       }`}
                     >
                       <span>{v}</span>
                       {(isF || isR) && (
-                        <span className="text-[9px] uppercase text-slate-300">
+                        <span className="mt-0.5 text-xs text-[#a1a1a6]">
                           {isF && isR ? "F & R" : isF ? "Front" : "Rear"}
                         </span>
                       )}
@@ -1030,10 +1061,10 @@ function QueueFamilyVisualizer({ kind }: { kind: "queue" | "deque" | "pqueue" })
                   variant="danger"
                   className="flex-1"
                   onClick={() => {
-                    if (!items.length) return setStatus("Queue Underflow!");
+                    if (!items.length) return setStatus("Queue underflow");
                     const f = items[0];
                     setItems((p) => p.slice(1));
-                    setStatus(`Dequeued ${f} from FRONT.`);
+                    setStatus(`Dequeued ${f} from FRONT`);
                   }}
                 >
                   Dequeue
@@ -1048,7 +1079,7 @@ function QueueFamilyVisualizer({ kind }: { kind: "queue" | "deque" | "pqueue" })
                     const v = Number(valInput);
                     if (!Number.isNaN(v)) {
                       setItems((p) => [v, ...p]);
-                      setStatus(`Added ${v} at FRONT.`);
+                      setStatus(`Added ${v} at FRONT`);
                     }
                   }}
                 >
@@ -1060,7 +1091,7 @@ function QueueFamilyVisualizer({ kind }: { kind: "queue" | "deque" | "pqueue" })
                     const v = Number(valInput);
                     if (!Number.isNaN(v)) {
                       setItems((p) => [...p, v]);
-                      setStatus(`Added ${v} at REAR.`);
+                      setStatus(`Added ${v} at REAR`);
                     }
                   }}
                 >
@@ -1069,8 +1100,8 @@ function QueueFamilyVisualizer({ kind }: { kind: "queue" | "deque" | "pqueue" })
                 <StudioBtn
                   variant="danger"
                   onClick={() => {
-                    if (!items.length) return setStatus("Deque empty!");
-                    setStatus(`Removed ${items[0]} from FRONT.`);
+                    if (!items.length) return setStatus("Deque is empty");
+                    setStatus(`Removed ${items[0]} from FRONT`);
                     setItems((p) => p.slice(1));
                   }}
                 >
@@ -1079,8 +1110,8 @@ function QueueFamilyVisualizer({ kind }: { kind: "queue" | "deque" | "pqueue" })
                 <StudioBtn
                   variant="danger"
                   onClick={() => {
-                    if (!items.length) return setStatus("Deque empty!");
-                    setStatus(`Removed ${items[items.length - 1]} from REAR.`);
+                    if (!items.length) return setStatus("Deque is empty");
+                    setStatus(`Removed ${items[items.length - 1]} from REAR`);
                     setItems((p) => p.slice(0, -1));
                   }}
                 >

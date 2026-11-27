@@ -4,19 +4,18 @@ import {
   ArrowRight,
   BarChart3,
   Binary,
+  Compass,
   GitBranch,
   Layers,
   Menu,
   Network,
   Search,
-  Sparkles,
   X,
 } from "lucide-react";
 import { CATEGORIES, TOPICS, type CategoryId, type TopicId } from "./data/syllabus";
-import { MagicCard } from "./components/ui/magic-ui";
-import { ClickSpark } from "./components/ui/react-bits";
 import { AnimatedGroup } from "./components/ui/motion-primitives";
 import { MorphingPillTabs } from "./components/ui/primitives-21st";
+import { HeroSpecimen } from "./components/ui/hero-specimen";
 import { renderAnalysisTopic } from "./visualizers/AnalysisVisualizer";
 import { renderLinearTopic } from "./visualizers/LinearVisualizer";
 import { renderTreeTopic } from "./visualizers/TreeVisualizer";
@@ -25,13 +24,23 @@ import { SortingVisualizer } from "./visualizers/SortingVisualizer";
 import { renderSearchHashTopic } from "./visualizers/SearchHashVisualizer";
 
 const CATEGORY_ICON: Record<Exclude<CategoryId, "all">, React.ReactNode> = {
-  analysis: <Activity className="h-4 w-4 text-cyan-400" />,
-  linear: <Layers className="h-4 w-4 text-violet-400" />,
-  trees: <GitBranch className="h-4 w-4 text-emerald-400" />,
-  graphs: <Network className="h-4 w-4 text-amber-400" />,
-  sorting: <BarChart3 className="h-4 w-4 text-pink-400" />,
-  searching: <Binary className="h-4 w-4 text-sky-400" />,
+  analysis: <Activity className="h-4 w-4 text-[#85858b]" strokeWidth={1.5} />,
+  linear: <Layers className="h-4 w-4 text-[#85858b]" strokeWidth={1.5} />,
+  trees: <GitBranch className="h-4 w-4 text-[#85858b]" strokeWidth={1.5} />,
+  graphs: <Network className="h-4 w-4 text-[#85858b]" strokeWidth={1.5} />,
+  sorting: <BarChart3 className="h-4 w-4 text-[#85858b]" strokeWidth={1.5} />,
+  searching: <Binary className="h-4 w-4 text-[#85858b]" strokeWidth={1.5} />,
 };
+
+function BrandMark() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="2" y="10" width="4" height="8" rx="1" fill="#85858b" />
+      <rect x="8" y="3" width="4" height="15" rx="1" fill="#f59e0b" />
+      <rect x="14" y="7" width="4" height="11" rx="1" fill="#ededed" />
+    </svg>
+  );
+}
 
 export function App() {
   const [activeTopic, setActiveTopic] = useState<TopicId>("home");
@@ -63,11 +72,11 @@ export function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Ctrl+K shortcut to focus sidebar filter
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
+        setSidebarOpen(true);
         const el = document.getElementById("sidebar-search-input");
         el?.focus();
       }
@@ -95,171 +104,199 @@ export function App() {
   };
 
   return (
-    <ClickSpark sparkColor="#a78bfa">
-      <div className="min-h-screen bg-[#0b0d14] text-[#eef0f6]">
-        {/* Top Navbar */}
-        <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between gap-2 border-b border-white/[0.08] bg-[#0b0d14]/90 px-4 backdrop-blur-md lg:px-6">
-          <div className="flex shrink-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setSidebarOpen((v) => !v)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.1] bg-[#131724] text-slate-300"
-              aria-label="Toggle Navigation"
-            >
-              {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            </button>
+    <div className="min-h-screen bg-[#141415] text-[#ededed]">
+      {/* Top Bar */}
+      <header className="sticky top-0 z-50 flex h-14 items-center justify-between gap-4 border-b border-[#ededed]/[0.08] bg-[#141415] px-4 lg:px-6">
+        <div className="flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen((v) => !v)}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#ededed]/[0.1] bg-[#232325] text-[#a1a1a6] transition-colors duration-150 hover:text-[#ededed] lg:hidden cursor-pointer"
+            aria-label="Toggle navigation"
+          >
+            {sidebarOpen ? (
+              <X className="h-4 w-4" strokeWidth={1.5} />
+            ) : (
+              <Menu className="h-4 w-4" strokeWidth={1.5} />
+            )}
+          </button>
 
+          <button
+            type="button"
+            onClick={() => navigateTopic("home")}
+            className="flex shrink-0 items-center gap-2.5 text-left whitespace-nowrap cursor-pointer"
+          >
+            <BrandMark />
+            <span className="text-base font-semibold tracking-[-0.01em] text-[#ededed]">
+              DSA Studio
+            </span>
+          </button>
+        </div>
+
+        {currentMeta && (
+          <div className="flex items-center gap-2 text-xs text-[#85858b]">
+            <span className="hidden font-mono sm:inline">{currentMeta.moduleTag}</span>
+            <span className="hidden sm:inline">·</span>
+            <span className="truncate font-medium text-[#a1a1a6]">{currentMeta.title}</span>
+          </div>
+        )}
+      </header>
+
+      {/* Mobile Drawer Backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/60 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <div className="flex">
+        {/* Persistent Desktop Syllabus Sidebar (256px) / Mobile Drawer */}
+        <aside
+          className={`fixed bottom-0 left-0 top-14 z-40 flex w-64 shrink-0 flex-col border-r border-[#ededed]/[0.08] bg-[#0f0f10] transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] lg:sticky lg:top-14 lg:h-[calc(100vh-3.5rem)] lg:translate-x-0 ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <div className="border-b border-[#ededed]/[0.07] p-4">
+            <div className="relative flex items-center">
+              <Search
+                className="pointer-events-none absolute left-3 h-4 w-4 text-[#85858b]"
+                strokeWidth={1.5}
+              />
+              <input
+                id="sidebar-search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Filter topics"
+                className="h-9 w-full rounded-lg border border-[#ededed]/[0.09] bg-[#19191b] pl-9 pr-14 text-xs text-[#ededed] placeholder:text-[#85858b] outline-none transition-colors duration-150 focus:border-amber-500/70"
+              />
+              <kbd className="pointer-events-none absolute right-2 rounded border border-[#ededed]/[0.1] bg-[#232325] px-1.5 py-0.5 font-mono text-[11px] text-[#85858b]">
+                Ctrl K
+              </kbd>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-3 py-4">
             <button
               type="button"
               onClick={() => navigateTopic("home")}
-              className="flex shrink-0 items-center gap-2.5 text-left whitespace-nowrap cursor-pointer"
+              className={`flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm transition-colors duration-150 cursor-pointer ${
+                activeTopic === "home"
+                  ? "bg-[#232325] font-medium text-[#ededed] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                  : "text-[#a1a1a6] hover:bg-[#19191b] hover:text-[#ededed]"
+              }`}
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-violet-400/40 bg-violet-600/20 font-mono text-xs font-bold text-violet-300">
-                DS
-              </div>
-              <div className="flex items-center">
-                <span className="text-sm font-bold tracking-tight text-white">DSA Studio</span>
-              </div>
+              <span className="flex w-4 shrink-0 items-center justify-center">
+                <Compass className="h-4 w-4 text-[#85858b]" strokeWidth={1.5} />
+              </span>
+              <span className="flex-1 truncate">Overview</span>
+              {activeTopic === "home" && (
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+              )}
             </button>
-          </div>
 
-          <nav className="hidden items-center gap-1 whitespace-nowrap md:flex">
-            {[
-              { id: "home" as TopicId, label: "Overview", cat: null },
-              { id: "asymptotic" as TopicId, label: "Analysis", cat: "analysis" },
-              { id: "list" as TopicId, label: "Linear DS", cat: "linear" },
-              { id: "binary-tree" as TopicId, label: "Trees", cat: "trees" },
-              { id: "bfs" as TopicId, label: "Graphs", cat: "graphs" },
-              { id: "quick-sort" as TopicId, label: "Sorting", cat: "sorting" },
-              { id: "hashing" as TopicId, label: "Search & Hash", cat: "searching" },
-            ].map((navItem) => {
-              const isActive =
-                navItem.id === "home"
-                  ? activeTopic === "home"
-                  : currentMeta?.category === navItem.cat;
+            {CATEGORIES.map((cat) => {
+              const catTopics = TOPICS.filter(
+                (t) =>
+                  t.category === cat.id &&
+                  (!searchQuery.trim() ||
+                    t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    t.tags.some((tg) => tg.toLowerCase().includes(searchQuery.toLowerCase())))
+              );
+              if (!catTopics.length) return null;
+
               return (
-                <button
-                  key={navItem.label}
-                  type="button"
-                  onClick={() => navigateTopic(navItem.id)}
-                  className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition cursor-pointer lg:px-3 ${
-                    isActive
-                      ? "bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/40"
-                      : "text-slate-400 hover:bg-white/[0.05] hover:text-slate-200"
-                  }`}
-                >
-                  {navItem.label}
-                </button>
+                <div key={cat.id} className="mt-6">
+                  <div className="mb-2 flex items-center gap-2.5 px-2.5 text-xs font-medium text-[#85858b]">
+                    <span className="flex w-4 shrink-0 items-center justify-center">
+                      {CATEGORY_ICON[cat.id]}
+                    </span>
+                    <span className="truncate">{cat.label}</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    {catTopics.map((topic) => {
+                      const isActive = activeTopic === topic.id;
+                      return (
+                        <button
+                          key={topic.id}
+                          type="button"
+                          onClick={() => navigateTopic(topic.id)}
+                          className={`flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[13px] transition-colors duration-150 cursor-pointer ${
+                            isActive
+                              ? "bg-[#232325] font-medium text-[#ededed] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                              : "text-[#a1a1a6] hover:bg-[#19191b] hover:text-[#ededed]"
+                          }`}
+                        >
+                          <span className="flex w-2.5 shrink-0 items-center justify-center">
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full transition-colors duration-150 ${
+                                isActive ? "bg-amber-500" : "bg-[#85858b]/35"
+                              }`}
+                            />
+                          </span>
+                          <span className="truncate">{topic.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
-          </nav>
+          </div>
+        </aside>
 
-        </header>
+        {/* Main Content Area */}
+        <main className="min-h-[calc(100vh-3.5rem)] min-w-0 flex-1">
+          <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:py-8">
+            {activeTopic === "home" ? (
+              <div className="space-y-12">
+                {/* Asymmetric Split Hero */}
+                <section className="grid grid-cols-1 items-center gap-8 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:gap-12">
+                  <div>
+                    <h1 className="text-4xl font-medium tracking-[-0.025em] leading-[1.06] text-[#ededed] sm:text-5xl">
+                      Step through data structures and algorithms
+                    </h1>
+                    <p className="mt-4 max-w-[34rem] text-base leading-relaxed text-[#a1a1a6] sm:text-lg">
+                      Supply your own arrays, trees, graphs, or expressions and watch pointers,
+                      rotations, and comparisons update one step at a time
+                    </p>
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => navigateTopic("quick-sort")}
+                        className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#ededed] px-5 text-sm font-medium text-[#141415] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white active:scale-[0.98] cursor-pointer"
+                      >
+                        Start with Quick Sort
+                        <ArrowRight className="h-4 w-4" strokeWidth={1.5} />
+                      </button>
+                      <a
+                        href="#syllabus-grid"
+                        className="inline-flex h-11 items-center rounded-lg border border-[#ededed]/[0.1] bg-[#232325] px-5 text-sm font-medium text-[#ededed] transition-colors duration-150 hover:border-[#ededed]/[0.2] hover:bg-[#2b2b2e]"
+                      >
+                        Browse 29 topics
+                      </a>
+                    </div>
+                  </div>
 
-        {/* Mobile Overlay */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 z-30 bg-black/60"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+                  <HeroSpecimen onOpenTopic={navigateTopic} />
+                </section>
 
-        <div className="flex pt-14">
-          {/* Left Sidebar */}
-          <aside
-            className={`fixed bottom-0 left-0 top-14 z-40 flex w-64 flex-col border-r border-white/[0.08] bg-[#0e111a] transition-transform duration-200 ${
-              sidebarOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
-          >
-            <div className="border-b border-white/[0.06] p-3">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
-                <input
-                  id="sidebar-search-input"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Filter topics (Ctrl+K)"
-                  className="w-full rounded-lg border border-white/[0.09] bg-[#080a10] py-1.5 pl-8 pr-2.5 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:border-violet-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4">
-              {CATEGORIES.map((cat) => {
-                const catTopics = TOPICS.filter(
-                  (t) =>
-                    t.category === cat.id &&
-                    (!searchQuery.trim() ||
-                      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      t.tags.some((tg) => tg.toLowerCase().includes(searchQuery.toLowerCase())))
-                );
-                if (!catTopics.length) return null;
-
-                return (
-                  <div key={cat.id}>
-                    <div className="mb-1 flex items-center justify-between px-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                      <span className="flex items-center gap-1.5">
-                        {CATEGORY_ICON[cat.id]}
-                        {cat.label}
+                {/* Syllabus Section */}
+                <section id="syllabus-grid" className="space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-baseline gap-3">
+                      <h2 className="text-lg font-medium text-[#ededed]">Syllabus workbench</h2>
+                      <span className="font-mono text-xs tabular-nums text-[#85858b]">
+                        {filteredTopics.length} topics
                       </span>
                     </div>
-                    <div className="space-y-0.5">
-                      {catTopics.map((topic) => {
-                        const isActive = activeTopic === topic.id;
-                        return (
-                          <button
-                            key={topic.id}
-                            type="button"
-                            onClick={() => navigateTopic(topic.id)}
-                            className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs transition cursor-pointer ${
-                              isActive
-                                ? "bg-violet-500/15 font-semibold text-violet-200 ring-1 ring-violet-500/35"
-                                : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
-                            }`}
-                          >
-                            <span className="truncate">{topic.title}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </aside>
 
-          {/* Main Content Area */}
-          <main className="min-h-[calc(100vh-3.5rem)] flex-1">
-            <div className="mx-auto max-w-[1380px] p-4 sm:p-6">
-              {activeTopic === "home" ? (
-                <div className="space-y-6">
-                  {/* Hero Card */}
-                  <div className="dsa-hero">
-                    <div className="dsa-hero-content">
-                      <div className="dsa-hero-badge">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Interactive DSA Learning
-                      </div>
-                      <h1 className="dsa-hero-title">
-                        <span>Data Structures &amp;</span>
-                        <span>Algorithms</span>
-                        <span className="dsa-hero-gradient">Visualizer Lab</span>
-                      </h1>
-                      <p className="dsa-hero-desc">
-                        Explore core DSA concepts through interactive, step-by-step visualizations.
-                        Build structures, trace algorithms, and understand how they really work.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Category Filter Pills */}
-                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <MorphingPillTabs
                       layoutId="home-cat-tabs"
                       value={homeCategory}
                       onChange={setHomeCategory}
                       options={[
-                        { id: "all", label: "All Topics" },
+                        { id: "all", label: "All topics" },
                         { id: "analysis", label: "Analysis" },
                         { id: "linear", label: "Linear DS" },
                         { id: "trees", label: "Trees" },
@@ -270,72 +307,89 @@ export function App() {
                     />
                   </div>
 
-                  {/* Bento / Topic Cards Grid */}
-                  <AnimatedGroup key={homeCategory} className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+                  {/* Topic Cards Grid */}
+                  <AnimatedGroup
+                    key={homeCategory}
+                    className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                  >
                     {filteredTopics.map((topic) => (
-                      <MagicCard
+                      <button
                         key={topic.id}
+                        type="button"
                         onClick={() => navigateTopic(topic.id)}
-                        className="p-4.5"
+                        className="group flex flex-col justify-between rounded-2xl border border-[#ededed]/[0.08] bg-[#19191b] p-5 text-left transition-colors duration-150 hover:border-[#ededed]/[0.18] hover:bg-[#1e1e21] cursor-pointer"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-[#171c2b]">
-                              {CATEGORY_ICON[topic.category]}
+                        <div>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#ededed]/[0.08] bg-[#232325]">
+                                {CATEGORY_ICON[topic.category]}
+                              </span>
+                              <span className="font-mono text-xs text-[#85858b]">
+                                {topic.moduleTag}
+                              </span>
                             </div>
+                            <ArrowRight
+                              className="h-4 w-4 text-[#85858b] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-amber-400"
+                              strokeWidth={1.5}
+                            />
                           </div>
-                          <ArrowRight className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:text-violet-300" />
+
+                          <h3 className="mt-3 text-base font-medium text-[#ededed]">
+                            {topic.title}
+                          </h3>
+                          <p className="mt-1.5 text-xs leading-relaxed text-[#a1a1a6]">
+                            {topic.shortDesc.replace(/\.$/, "")}
+                          </p>
                         </div>
 
-                        <h3 className="mt-3 text-base font-semibold text-white">{topic.title}</h3>
-                        <p className="mt-1 text-xs leading-relaxed text-slate-400">{topic.shortDesc}</p>
-
-                        <div className="mt-3 flex flex-wrap gap-1.5">
+                        <div className="mt-4 flex flex-wrap gap-1.5">
                           {topic.tags.map((tg) => (
                             <span
                               key={tg}
-                              className="rounded-md border border-white/[0.07] bg-white/[0.03] px-2 py-0.5 font-mono text-[10px] text-slate-300"
+                              className="rounded-md border border-[#ededed]/[0.07] bg-[#141415] px-2 py-0.5 font-mono text-xs text-[#85858b]"
                             >
                               {tg}
                             </span>
                           ))}
                         </div>
-                      </MagicCard>
+                      </button>
                     ))}
                   </AnimatedGroup>
-
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Topic Page Header */}
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 text-xs text-slate-400">
-                        <button
-                          type="button"
-                          onClick={() => navigateTopic("home")}
-                          className="hover:text-white cursor-pointer"
-                        >
-                          All Topics
-                        </button>
-                        <span>/</span>
-                        <span className="font-mono text-violet-300">{currentMeta?.moduleTag}</span>
-                      </div>
-                      <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">
-                        {currentMeta?.title}
-                      </h1>
-                      <p className="text-sm text-slate-400">{currentMeta?.shortDesc}</p>
+                </section>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Topic Page Header */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs text-[#85858b]">
+                      <button
+                        type="button"
+                        onClick={() => navigateTopic("home")}
+                        className="transition-colors duration-150 hover:text-[#ededed] cursor-pointer"
+                      >
+                        All topics
+                      </button>
+                      <span>/</span>
+                      <span className="font-mono text-amber-400">{currentMeta?.moduleTag}</span>
                     </div>
+                    <h1 className="mt-1 text-3xl font-medium tracking-[-0.02em] text-[#ededed]">
+                      {currentMeta?.title}
+                    </h1>
+                    <p className="mt-1 text-sm text-[#a1a1a6]">
+                      {currentMeta?.shortDesc.replace(/\.$/, "")}
+                    </p>
                   </div>
-
-                  {renderActiveVisualizer()}
                 </div>
-              )}
-            </div>
-          </main>
-        </div>
+
+                {renderActiveVisualizer()}
+              </div>
+            )}
+          </div>
+        </main>
       </div>
-    </ClickSpark>
+    </div>
   );
 }
 

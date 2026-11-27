@@ -572,12 +572,12 @@ export function SortingVisualizer({
 
   const maxBarVal = Math.max(1, ...curBarStep.arr);
   const barColors: Record<BarState, string> = {
-    unsorted: "from-indigo-600 to-violet-500 shadow-[0_0_20px_-4px_rgba(99,102,241,0.45)]",
-    active: "from-cyan-600 to-sky-400 shadow-[0_0_20px_-4px_rgba(6,182,212,0.55)]",
-    comparing: "from-amber-600 to-amber-400 shadow-[0_0_20px_-4px_rgba(245,158,11,0.55)]",
-    swap: "from-rose-600 to-pink-500 shadow-[0_0_20px_-4px_rgba(236,72,153,0.6)]",
-    sorted: "from-emerald-600 to-emerald-400 shadow-[0_0_20px_-4px_rgba(16,185,129,0.5)]",
-    pivot: "from-purple-700 to-fuchsia-500 shadow-[0_0_22px_-4px_rgba(168,85,247,0.7)]",
+    unsorted: "bg-[#2e2e34] border-t border-[#ededed]/15",
+    active: "bg-[#60a5fa] border-t border-sky-200/35",
+    comparing: "bg-[#f59e0b] border-t border-amber-200/40",
+    swap: "bg-[#e5484d] border-t border-rose-200/40",
+    sorted: "bg-[#4cc38a] border-t border-emerald-200/40",
+    pivot: "bg-[#ededed] border-t border-white",
   };
 
   // For Merge Tree SVG layout
@@ -611,7 +611,7 @@ export function SortingVisualizer({
               <svg viewBox={`0 0 740 ${Math.max(360, (mergeMaxDepth + 1) * 58 + 20)}`} className="w-full min-w-[540px]">
                 <defs>
                   <marker id="m-arr-slate" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                    <path d="M0,0 L0,6 L6,3 z" fill="#475569" />
+                    <path d="M0,0 L0,6 L6,3 z" fill="#52525b" />
                   </marker>
                   <marker id="m-arr-amber" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
                     <path d="M0,0 L0,6 L6,3 z" fill="#f59e0b" />
@@ -637,16 +637,16 @@ export function SortingVisualizer({
                           y1={y1}
                           x2={x2}
                           y2={y2}
-                          stroke={isActive ? "#f59e0b" : "#334155"}
-                          strokeWidth={isActive ? 2 : 1.3}
+                          stroke={isActive ? "#f59e0b" : "rgba(237,237,237,0.18)"}
+                          strokeWidth={isActive ? 2 : 1.2}
                           markerEnd={isActive ? "url(#m-arr-amber)" : "url(#m-arr-slate)"}
                         />
                         <text
                           x={(x1 + x2) / 2}
                           y={(y1 + y2) / 2}
                           textAnchor="middle"
-                          fill={isActive ? "#fbbf24" : "#64748b"}
-                          fontSize="9"
+                          fill={isActive ? "#f59e0b" : "#85858b"}
+                          fontSize="10"
                         >
                           {node.edgeLabel}
                         </text>
@@ -664,9 +664,9 @@ export function SortingVisualizer({
                   const x0 = node.x * 740 - totalW / 2;
                   const y0 = 28 + node.depth * 56 - 13;
                   const stroke =
-                    state === "active" ? "#f59e0b" : state === "done" ? "#10b981" : "#334155";
+                    state === "active" ? "#f59e0b" : state === "done" ? "#4cc38a" : "rgba(237,237,237,0.2)";
                   const fill =
-                    state === "active" ? "#1e160a" : state === "done" ? "#071f17" : "#121623";
+                    state === "active" ? "#261c0b" : state === "done" ? "#11281d" : "#19191b";
 
                   return (
                     <g key={node.id}>
@@ -678,7 +678,7 @@ export function SortingVisualizer({
                         rx={5}
                         fill={fill}
                         stroke={stroke}
-                        strokeWidth={state === "pending" ? 1.2 : 2}
+                        strokeWidth={state === "pending" ? 1.2 : 1.8}
                       />
                       {vals.map((v, idx) => (
                         <g key={idx}>
@@ -689,7 +689,7 @@ export function SortingVisualizer({
                               x2={x0 + idx * cellW}
                               y2={y0 + 26}
                               stroke={stroke}
-                              strokeOpacity={0.5}
+                              strokeOpacity={0.45}
                             />
                           )}
                           <text
@@ -697,9 +697,9 @@ export function SortingVisualizer({
                             y={y0 + 13}
                             textAnchor="middle"
                             dominantBaseline="central"
-                            fill={v === null ? "#475569" : "#f1f5f9"}
+                            fill={v === null ? "#85858b" : "#ededed"}
                             fontSize="11"
-                            fontWeight="600"
+                            fontWeight="500"
                             fontFamily="JetBrains Mono, monospace"
                           >
                             {v === null ? "·" : v}
@@ -719,9 +719,9 @@ export function SortingVisualizer({
                 const maxLevel = Math.floor(Math.log2(hs));
                 const svgH = Math.max(120, 26 + maxLevel * 44 + 26);
                 return (
-                <div className="border-b border-white/[0.06] pb-3">
-                  <div className="mb-1 text-center font-mono text-[11px] text-slate-400">
-                    Active {heapType === "max" ? "Max-Heap" : "Min-Heap"} Tree (size {hs})
+                <div className="border-b border-[#ededed]/[0.07] pb-3">
+                  <div className="mb-1 text-center font-mono text-xs text-[#85858b]">
+                    Active {heapType === "max" ? "Max-Heap" : "Min-Heap"} tree (size {hs})
                   </div>
                   <svg viewBox={`0 0 640 ${svgH}`} className="mx-auto w-full max-w-xl">
                     {curBarStep.arr.slice(0, hs).map((_, i) => {
@@ -748,7 +748,7 @@ export function SortingVisualizer({
                               y1={y}
                               x2={childCoords(li).x}
                               y2={childCoords(li).y}
-                              stroke="#334155"
+                              stroke="rgba(237,237,237,0.18)"
                               strokeWidth="1.5"
                             />
                           )}
@@ -758,7 +758,7 @@ export function SortingVisualizer({
                               y1={y}
                               x2={childCoords(ri).x}
                               y2={childCoords(ri).y}
-                              stroke="#334155"
+                              stroke="rgba(237,237,237,0.18)"
                               strokeWidth="1.5"
                             />
                           )}
@@ -773,20 +773,20 @@ export function SortingVisualizer({
                       const y = 24 + level * 44;
                       const st = curBarStep.states[i];
                       const fill =
-                        st === "swap" ? "#9f1239" : st === "comparing" ? "#92400e" : st === "pivot" ? "#6b21a8" : "#171c2e";
+                        st === "swap" ? "#3a191b" : st === "comparing" ? "#33240d" : st === "pivot" ? "#2c2c30" : "#19191b";
                       const stroke =
-                        st === "swap" ? "#f43f5e" : st === "comparing" ? "#f59e0b" : st === "pivot" ? "#c084fc" : "#6366f1";
+                        st === "swap" ? "#e5484d" : st === "comparing" ? "#f59e0b" : st === "pivot" ? "#ededed" : "#48484f";
                       return (
                         <g key={`n-${i}`}>
-                          <circle cx={x} cy={y} r={16} fill={fill} stroke={stroke} strokeWidth="2" />
+                          <circle cx={x} cy={y} r={16} fill={fill} stroke={stroke} strokeWidth="1.8" />
                           <text
                             x={x}
                             y={y}
                             textAnchor="middle"
                             dominantBaseline="central"
-                            fill="#fff"
+                            fill="#ededed"
                             fontSize="11"
-                            fontWeight="700"
+                            fontWeight="500"
                             fontFamily="JetBrains Mono, monospace"
                           >
                             {val}
@@ -799,19 +799,19 @@ export function SortingVisualizer({
                 );
               })()}
 
-              {/* Bar Chart matching Reference Image 2 */}
+              {/* Bar Chart */}
               <div className="flex h-[240px] items-end justify-center gap-2.5 px-2 pt-7 pb-1">
                 {curBarStep.arr.map((val, i) => {
                   const st = curBarStep.states[i] ?? "unsorted";
                   const hPx = Math.max(18, Math.round((val / maxBarVal) * 182));
                   return (
-                    <div key={i} className="flex flex-1 max-w-[66px] flex-col items-center justify-end gap-1.5 h-full">
-                      <span className="font-mono text-xs font-semibold text-slate-300">{val}</span>
+                    <div key={i} className="flex h-full flex-1 max-w-16 flex-col items-center justify-end gap-1.5">
+                      <span className="font-mono text-xs font-medium tabular-nums text-[#a1a1a6]">{val}</span>
                       <div
                         style={{ height: `${hPx}px` }}
-                        className={`w-full rounded-t-md bg-gradient-to-t transition-all duration-150 ${barColors[st]}`}
+                        className={`w-full rounded-t-md transition-[height,background-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] ${barColors[st]}`}
                       />
-                      <span className="font-mono text-[11px] text-slate-500">{i}</span>
+                      <span className="font-mono text-xs tabular-nums text-[#85858b]">[{i}]</span>
                     </div>
                   );
                 })}
@@ -836,17 +836,17 @@ export function SortingVisualizer({
             legend={
               isMergeTree
                 ? [
-                    { label: "Pending", colorClass: "bg-slate-600" },
-                    { label: "Active", colorClass: "bg-amber-500" },
-                    { label: "Done", colorClass: "bg-emerald-500" },
+                    { label: "Pending", colorClass: "bg-[#48484f]" },
+                    { label: "Active", colorClass: "bg-[#f59e0b]" },
+                    { label: "Done", colorClass: "bg-[#4cc38a]" },
                   ]
                 : [
-                    { label: "Unsorted", colorClass: "bg-indigo-500" },
-                    { label: "Active", colorClass: "bg-cyan-500" },
-                    { label: "Comparing", colorClass: "bg-amber-500" },
-                    { label: "Swap / Write", colorClass: "bg-pink-500" },
-                    { label: "Sorted", colorClass: "bg-emerald-500" },
-                    { label: "Pivot", colorClass: "bg-purple-500" },
+                    { label: "Unsorted", colorClass: "bg-[#2e2e34]" },
+                    { label: "Active", colorClass: "bg-[#60a5fa]" },
+                    { label: "Comparing", colorClass: "bg-[#f59e0b]" },
+                    { label: "Swap / Write", colorClass: "bg-[#e5484d]" },
+                    { label: "Sorted", colorClass: "bg-[#4cc38a]" },
+                    { label: "Pivot", colorClass: "bg-[#ededed]" },
                   ]
             }
           />
@@ -961,7 +961,7 @@ export function SortingVisualizer({
             </InspectorBlock>
 
             <InspectorBlock title={`About ${info.name}`}>
-              <p className="text-xs leading-relaxed text-slate-300">{info.about}</p>
+              <p className="text-xs leading-relaxed text-[#a1a1a6]">{info.about}</p>
             </InspectorBlock>
           </>
         }

@@ -89,8 +89,8 @@ function TreeSvgCanvas({
   const { nodes, edges, height } = useMemo(() => layoutBinaryTree(root), [root]);
   if (!root) {
     return (
-      <div className="flex h-[260px] items-center justify-center text-center text-sm text-slate-500">
-        Tree is empty. Enter values in the User Input &amp; Controls panel to construct a tree.
+      <div className="flex h-[260px] items-center justify-center text-center text-sm text-[#85858b]">
+        Tree is empty — enter values in Input &amp; controls to build a tree
       </div>
     );
   }
@@ -104,8 +104,8 @@ function TreeSvgCanvas({
           y1={e.y1}
           x2={e.x2}
           y2={e.y2}
-          stroke="#334155"
-          strokeWidth="2"
+          stroke="rgba(237,237,237,0.18)"
+          strokeWidth="1.8"
         />
       ))}
       {nodes.map((n) => {
@@ -115,12 +115,14 @@ function TreeSvgCanvas({
         const isSelected = selectedId === n.id;
 
         const fill = isWarn
-          ? "#991b1b"
+          ? "#450a0a"
           : isActive
-          ? "#7c3aed"
+          ? "#2e1065"
           : isVisited
-          ? "#065f46"
-          : "#151929";
+          ? "#064e3b"
+          : isSelected
+          ? "#172554"
+          : "#19191b";
         const stroke = isWarn
           ? "#f43f5e"
           : isActive
@@ -129,7 +131,16 @@ function TreeSvgCanvas({
           ? "#10b981"
           : isSelected
           ? "#38bdf8"
-          : "#4f46e5";
+          : "#6366f1";
+        const glow = isWarn
+          ? "drop-shadow(0 0 8px rgba(244,63,94,0.55))"
+          : isActive
+          ? "drop-shadow(0 0 8px rgba(139,92,246,0.55))"
+          : isVisited
+          ? "drop-shadow(0 0 8px rgba(16,185,129,0.5))"
+          : isSelected
+          ? "drop-shadow(0 0 8px rgba(56,189,248,0.5))"
+          : "drop-shadow(0 0 5px rgba(99,102,241,0.28))";
 
         return (
           <g
@@ -143,16 +154,17 @@ function TreeSvgCanvas({
               r={20}
               fill={fill}
               stroke={stroke}
-              strokeWidth={isActive || isWarn || isSelected ? 3 : 2}
+              strokeWidth={isActive || isWarn || isSelected ? 2.5 : 2}
+              style={{ filter: glow }}
             />
             <text
               x={n.x}
               y={n.y}
               textAnchor="middle"
               dominantBaseline="central"
-              fill="#f8fafc"
+              fill="#ededed"
               fontSize="12"
-              fontWeight="700"
+              fontWeight="500"
               fontFamily="JetBrains Mono, monospace"
             >
               {n.label}
@@ -161,9 +173,9 @@ function TreeSvgCanvas({
               <text
                 x={n.x + 24}
                 y={n.y - 12}
-                fill={Math.abs(n.bf) > 1 ? "#f43f5e" : n.bf === 0 ? "#10b981" : "#f59e0b"}
-                fontSize="10"
-                fontWeight="700"
+                fill={Math.abs(n.bf) > 1 ? "#e5484d" : n.bf === 0 ? "#4cc38a" : "#f59e0b"}
+                fontSize="11"
+                fontWeight="500"
                 fontFamily="JetBrains Mono, monospace"
               >
                 BF:{n.bf}
@@ -261,17 +273,17 @@ function TreeBasicsVisualizer() {
             onNodeClick={(n) => setSelectedId(n.id)}
           />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <div className={`rounded-lg border px-3 py-2 text-xs ${analysis.isFull ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-white/[0.08] bg-[#121625] text-slate-400"}`}>
-              <div className="font-semibold">Full Binary Tree: {analysis.isFull ? "YES" : "NO"}</div>
-              <div className="mt-0.5 text-[11px] opacity-80">Every node has 0 or 2 children.</div>
+            <div className={`rounded-lg border px-3 py-2.5 text-xs ${analysis.isFull ? "border-[#4cc38a]/40 bg-[#4cc38a]/10 text-[#ededed]" : "border-[#ededed]/[0.08] bg-[#19191b] text-[#a1a1a6]"}`}>
+              <div className="font-medium">Full binary tree: {analysis.isFull ? "Yes" : "No"}</div>
+              <div className="mt-1 text-xs text-[#85858b]">Every node has 0 or 2 children</div>
             </div>
-            <div className={`rounded-lg border px-3 py-2 text-xs ${analysis.isComplete ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-white/[0.08] bg-[#121625] text-slate-400"}`}>
-              <div className="font-semibold">Complete Binary Tree: {analysis.isComplete ? "YES" : "NO"}</div>
-              <div className="mt-0.5 text-[11px] opacity-80">Filled level-by-level from left to right.</div>
+            <div className={`rounded-lg border px-3 py-2.5 text-xs ${analysis.isComplete ? "border-[#4cc38a]/40 bg-[#4cc38a]/10 text-[#ededed]" : "border-[#ededed]/[0.08] bg-[#19191b] text-[#a1a1a6]"}`}>
+              <div className="font-medium">Complete binary tree: {analysis.isComplete ? "Yes" : "No"}</div>
+              <div className="mt-1 text-xs text-[#85858b]">Filled level by level from left to right</div>
             </div>
-            <div className={`rounded-lg border px-3 py-2 text-xs ${analysis.isPerfect ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-white/[0.08] bg-[#121625] text-slate-400"}`}>
-              <div className="font-semibold">Perfect Binary Tree: {analysis.isPerfect ? "YES" : "NO"}</div>
-              <div className="mt-0.5 text-[11px] opacity-80">All internal have 2 children; all leaves at same depth.</div>
+            <div className={`rounded-lg border px-3 py-2.5 text-xs ${analysis.isPerfect ? "border-[#4cc38a]/40 bg-[#4cc38a]/10 text-[#ededed]" : "border-[#ededed]/[0.08] bg-[#19191b] text-[#a1a1a6]"}`}>
+              <div className="font-medium">Perfect binary tree: {analysis.isPerfect ? "Yes" : "No"}</div>
+              <div className="mt-1 text-xs text-[#85858b]">Internal nodes have 2 children; leaves align</div>
             </div>
           </div>
         </div>
@@ -314,16 +326,16 @@ function TreeBasicsVisualizer() {
             />
           </InspectorBlock>
 
-          <InspectorBlock title="Node Inspector (Click any node)">
+          <InspectorBlock title="Node inspector (click a node)">
             {selStat ? (
-              <div className="grid grid-cols-2 gap-1.5 font-mono text-xs text-slate-300">
-                <div>Parent: <span className="text-sky-300">{selStat.parent}</span></div>
-                <div>Depth: <span className="text-violet-300">{selStat.depth}</span></div>
-                <div>Degree: <span className="text-amber-300">{selStat.degree}</span></div>
-                <div>Type: <span className="text-emerald-300">{selStat.isLeaf ? "Leaf" : "Internal"}</span></div>
+              <div className="grid grid-cols-2 gap-1.5 font-mono text-xs text-[#a1a1a6]">
+                <div>Parent: <span className="text-[#60a5fa]">{selStat.parent}</span></div>
+                <div>Depth: <span className="text-amber-400">{selStat.depth}</span></div>
+                <div>Degree: <span className="text-[#ededed]">{selStat.degree}</span></div>
+                <div>Type: <span className="text-[#4cc38a]">{selStat.isLeaf ? "Leaf" : "Internal"}</span></div>
               </div>
             ) : (
-              <p className="text-xs text-slate-400">Click any node in the tree to inspect its properties.</p>
+              <p className="text-xs text-[#85858b]">Click any node in the tree to inspect its properties</p>
             )}
           </InspectorBlock>
         </>
@@ -333,7 +345,7 @@ function TreeBasicsVisualizer() {
           intuition="Trees organize hierarchical data without cycles. Binary trees restrict each node to at most two children (left and right), unlocking array-based heaps and fast search trees."
           keyPoints={[
             "Full BT: 0 or 2 children per node (never 1 child).",
-            "Complete BT: All levels full except possibly the last, packed left-to-right (used by Heaps!).",
+            "Complete BT: All levels full except possibly the last, packed left-to-right (used by Heaps).",
             "Perfect BT: Both Full and Complete with 2^(h+1) - 1 total nodes.",
           ]}
         />
@@ -562,10 +574,10 @@ function BinaryTreeVisualizer() {
               visitedIds={cur.visited}
             />
             {cur.output.length > 0 && (
-              <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-white/[0.08] bg-[#10131e] px-3 py-2">
-                <span className="mr-1 text-xs font-medium text-slate-400">Output:</span>
+              <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-[#ededed]/[0.08] bg-[#19191b] px-3 py-2">
+                <span className="mr-1 text-xs font-medium text-[#a1a1a6]">Output:</span>
                 {cur.output.map((v, i) => (
-                  <span key={`${v}-${i}`} className="rounded bg-emerald-500/20 px-2 py-0.5 font-mono text-xs font-bold text-emerald-300">
+                  <span key={`${v}-${i}`} className="rounded bg-[#4cc38a]/15 px-2 py-0.5 font-mono text-xs font-medium tabular-nums text-[#4cc38a]">
                     {v}
                   </span>
                 ))}
@@ -597,8 +609,8 @@ function BinaryTreeVisualizer() {
             speed={speed}
             onSpeedChange={setSpeed}
             legend={[
-              { label: "Unvisited", colorClass: "bg-indigo-600" },
-              { label: "Current Node", colorClass: "bg-violet-500" },
+              { label: "Unvisited", colorClass: "bg-indigo-500" },
+              { label: "Current node", colorClass: "bg-violet-500" },
               { label: "Visited", colorClass: "bg-emerald-500" },
             ]}
           />
@@ -649,7 +661,7 @@ function BinaryTreeVisualizer() {
         }
         footerNotes={
           <ConceptNotesGrid
-            intuition="In a BST, everything left of a node is smaller and everything right is larger. Notice how In-order traversal of a BST always yields sorted ascending output!"
+            intuition="In a BST, everything left of a node is smaller and everything right is larger, so an in-order traversal always yields sorted ascending output."
             keyPoints={[
               "In-order (L-N-R): Gives sorted order in BST.",
               "Pre-order (N-L-R): Root first — great for serializing or copying a tree.",
@@ -844,7 +856,7 @@ function AVLTreeVisualizer() {
       warn: [],
       msg: rots.length
         ? `${op === "insert" ? "Insert" : "Delete"} ${v} -> ${rots.join(" | ")}`
-        : `${op === "insert" ? "Inserted" : "Deleted"} ${v}. Balanced!`,
+        : `${op === "insert" ? "Inserted" : "Deleted"} ${v} (balanced)`,
     };
     const nextList = [...steps.slice(0, stepIdx + 1), nextStep];
     setSteps(nextList);
@@ -879,7 +891,7 @@ function AVLTreeVisualizer() {
           legend={[
             { label: "BF = 0 (Balanced)", colorClass: "bg-emerald-500" },
             { label: "BF = ±1 (Valid)", colorClass: "bg-amber-400" },
-            { label: "Newly Inserted", colorClass: "bg-violet-500" },
+            { label: "Newly inserted", colorClass: "bg-violet-500" },
           ]}
         />
       }
@@ -1113,17 +1125,17 @@ function ExpressionTreeVisualizer() {
             <TreeSvgCanvas root={tree} />
             {tree && (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2">
-                  <div className="text-[11px] font-semibold text-sky-300">In-order (Infix)</div>
-                  <div className="mt-1 font-mono text-xs text-white">{readings.infix}</div>
+                <div className="rounded-lg border border-[#60a5fa]/35 bg-[#60a5fa]/10 px-3 py-2">
+                  <div className="text-xs font-medium text-[#60a5fa]">In-order (Infix)</div>
+                  <div className="mt-1 font-mono text-xs text-[#ededed]">{readings.infix}</div>
                 </div>
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
-                  <div className="text-[11px] font-semibold text-amber-300">Pre-order (Prefix)</div>
-                  <div className="mt-1 font-mono text-xs text-white">{readings.prefix}</div>
+                <div className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2">
+                  <div className="text-xs font-medium text-amber-400">Pre-order (Prefix)</div>
+                  <div className="mt-1 font-mono text-xs text-[#ededed]">{readings.prefix}</div>
                 </div>
-                <div className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2">
-                  <div className="text-[11px] font-semibold text-violet-300">Post-order (Postfix)</div>
-                  <div className="mt-1 font-mono text-xs text-white">{readings.postfix}</div>
+                <div className="rounded-lg border border-[#4cc38a]/35 bg-[#4cc38a]/10 px-3 py-2">
+                  <div className="text-xs font-medium text-[#4cc38a]">Post-order (Postfix)</div>
+                  <div className="mt-1 font-mono text-xs text-[#ededed]">{readings.postfix}</div>
                 </div>
               </div>
             )}
@@ -1175,11 +1187,11 @@ function ExpressionTreeVisualizer() {
               >
                 <div className="space-y-2">
                   <div>
-                    <label className="mb-1 block text-[11px] text-slate-400">In-order Traversal</label>
+                    <label className="mb-1 block text-xs text-[#a1a1a6]">In-order traversal</label>
                     <StudioInput value={inOrderStr} onChange={(e) => setInOrderStr(e.target.value)} />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-slate-400">Pair With</label>
+                    <label className="mb-1 block text-xs text-[#a1a1a6]">Pair with</label>
                     <StudioSelect
                       value={otherType}
                       onChange={(e) => {
@@ -1193,8 +1205,8 @@ function ExpressionTreeVisualizer() {
                     </StudioSelect>
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] text-slate-400">
-                      {otherType === "pre" ? "Pre-order" : "Post-order"} Traversal
+                    <label className="mb-1 block text-xs text-[#a1a1a6]">
+                      {otherType === "pre" ? "Pre-order" : "Post-order"} traversal
                     </label>
                     <StudioInput value={otherStr} onChange={(e) => setOtherStr(e.target.value)} />
                   </div>

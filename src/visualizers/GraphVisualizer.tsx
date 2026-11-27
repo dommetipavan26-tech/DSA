@@ -153,10 +153,10 @@ function GraphSvgStage({
     >
       <defs>
         <marker id="g-arrow" markerWidth="8" markerHeight="8" refX="22" refY="3" orient="auto">
-          <path d="M0,0 L0,6 L7,3 z" fill="#64748b" />
+          <path d="M0,0 L0,6 L7,3 z" fill="#6b6b73" />
         </marker>
         <marker id="g-arrow-active" markerWidth="8" markerHeight="8" refX="22" refY="3" orient="auto">
-          <path d="M0,0 L0,6 L7,3 z" fill="#10b981" />
+          <path d="M0,0 L0,6 L7,3 z" fill="#4cc38a" />
         </marker>
       </defs>
 
@@ -166,8 +166,8 @@ function GraphSvgStage({
         if (!va || !vb) return null;
         const st = edgeStates[getEdgeKey(e.a, e.b)] || (!directed && edgeStates[getEdgeKey(e.b, e.a)]) || "default";
         const stroke =
-          st === "mst" ? "#10b981" : st === "active" ? "#f59e0b" : st === "skip" ? "#f43f5e" : "#334155";
-        const width = st === "mst" || st === "active" ? 3 : 2;
+          st === "mst" ? "#4cc38a" : st === "active" ? "#f59e0b" : st === "skip" ? "#e5484d" : "rgba(237,237,237,0.2)";
+        const width = st === "mst" || st === "active" ? 2.8 : 1.8;
         const mx = (va.x + vb.x) / 2;
         const my = (va.y + vb.y) / 2;
 
@@ -189,17 +189,17 @@ function GraphSvgStage({
               width={20}
               height={16}
               rx={4}
-              fill="#080a10"
-              stroke={st === "mst" ? "#10b981" : "rgba(255,255,255,0.08)"}
+              fill="#0f0f10"
+              stroke={st === "mst" ? "#4cc38a" : "rgba(237,237,237,0.1)"}
             />
             <text
               x={mx}
               y={my}
               textAnchor="middle"
               dominantBaseline="central"
-              fill={st === "mst" ? "#34d399" : st === "active" ? "#fbbf24" : "#94a3b8"}
-              fontSize="10"
-              fontWeight="700"
+              fill={st === "mst" ? "#4cc38a" : st === "active" ? "#f59e0b" : "#a1a1a6"}
+              fontSize="11"
+              fontWeight="500"
               fontFamily="JetBrains Mono, monospace"
             >
               {e.w}
@@ -212,14 +212,14 @@ function GraphSvgStage({
         const st = nodeStates[v.id] ?? "default";
         const fill =
           st === "current"
-            ? "#7c3aed"
+            ? "#3b0764"
             : st === "visited"
-            ? "#065f46"
+            ? "#064e3b"
             : st === "queued"
-            ? "#92400e"
+            ? "#451a03"
             : st === "start"
-            ? "#1d4ed8"
-            : "#161a29";
+            ? "#172554"
+            : "#19191b";
         const stroke =
           selectedId === v.id
             ? "#f59e0b"
@@ -232,6 +232,16 @@ function GraphSvgStage({
             : st === "start"
             ? "#60a5fa"
             : "#6366f1";
+        const glow =
+          selectedId === v.id || st === "queued"
+            ? "drop-shadow(0 0 8px rgba(245,158,11,0.55))"
+            : st === "current"
+            ? "drop-shadow(0 0 8px rgba(139,92,246,0.6))"
+            : st === "visited"
+            ? "drop-shadow(0 0 8px rgba(16,185,129,0.5))"
+            : st === "start"
+            ? "drop-shadow(0 0 8px rgba(96,165,250,0.5))"
+            : "drop-shadow(0 0 5px rgba(99,102,241,0.28))";
 
         return (
           <g
@@ -243,15 +253,23 @@ function GraphSvgStage({
               onNodeClick(v);
             }}
           >
-            <circle cx={v.x} cy={v.y} r={19} fill={fill} stroke={stroke} strokeWidth={selectedId === v.id ? 3 : 2.2} />
+            <circle
+              cx={v.x}
+              cy={v.y}
+              r={19}
+              fill={fill}
+              stroke={stroke}
+              strokeWidth={selectedId === v.id ? 2.6 : 2}
+              style={{ filter: glow }}
+            />
             <text
               x={v.x}
               y={v.y}
               textAnchor="middle"
               dominantBaseline="central"
-              fill="#f8fafc"
-              fontSize="13"
-              fontWeight="700"
+              fill="#ededed"
+              fontSize="12"
+              fontWeight="500"
               fontFamily="JetBrains Mono, monospace"
             >
               {v.id}
@@ -261,9 +279,9 @@ function GraphSvgStage({
                 x={v.x}
                 y={v.y + 28}
                 textAnchor="middle"
-                fill="#fbbf24"
-                fontSize="10"
-                fontWeight="700"
+                fill="#f59e0b"
+                fontSize="11"
+                fontWeight="500"
                 fontFamily="JetBrains Mono, monospace"
               >
                 d={distLabels[v.id]}
@@ -370,8 +388,8 @@ function GraphBasicsVisualizer({
             }}
           />
 
-          {/* Representations: Matrix / Adj List / Sparse Matrix (CSE2001 Module 6!) */}
-          <div className="rounded-xl border border-white/[0.08] bg-[#0e111b] p-3">
+          {/* Representations: Matrix / Adj List / Sparse Matrix */}
+          <div className="rounded-xl border border-[#ededed]/[0.08] bg-[#141415] p-3">
             <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
               <MorphingPillTabs
                 layoutId="rep-tabs"
@@ -387,23 +405,23 @@ function GraphBasicsVisualizer({
 
             {repTab === "matrix" && (
               <div className="overflow-x-auto">
-                <table className="w-full text-center font-mono text-xs">
+                <table className="w-full text-center font-mono text-xs tabular-nums">
                   <thead>
-                    <tr className="text-slate-400">
+                    <tr className="text-[#85858b]">
                       <th className="p-1.5"></th>
                       {ids.map((id) => (
-                        <th key={id} className="p-1.5">{id}</th>
+                        <th key={id} className="p-1.5 font-medium">{id}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {matrix.map((row, i) => (
-                      <tr key={ids[i]} className="border-t border-white/[0.05]">
-                        <th className="p-1.5 text-slate-400">{ids[i]}</th>
+                      <tr key={ids[i]} className="border-t border-[#ededed]/[0.06]">
+                        <th className="p-1.5 font-medium text-[#85858b]">{ids[i]}</th>
                         {row.map((val, j) => (
                           <td
                             key={j}
-                            className={`p-1.5 ${val ? "font-bold text-violet-300" : "text-slate-600"}`}
+                            className={`p-1.5 ${val ? "font-medium text-amber-400" : "text-[#85858b]/45"}`}
                           >
                             {val}
                           </td>
@@ -416,12 +434,12 @@ function GraphBasicsVisualizer({
             )}
 
             {repTab === "list" && (
-              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 font-mono text-xs">
+              <div className="grid grid-cols-1 gap-1.5 font-mono text-xs sm:grid-cols-2">
                 {ids.map((id) => (
-                  <div key={id} className="flex items-center gap-2 rounded-lg bg-[#141827] px-3 py-1.5">
-                    <span className="font-bold text-violet-300">{id}</span>
-                    <span className="text-slate-500">-&gt;</span>
-                    <span className="text-slate-300">
+                  <div key={id} className="flex items-center gap-2 rounded-lg border border-[#ededed]/[0.06] bg-[#19191b] px-3 py-1.5">
+                    <span className="font-medium text-amber-400">{id}</span>
+                    <span className="text-[#85858b]">-&gt;</span>
+                    <span className="text-[#ededed]">
                       {adjList[id]?.length
                         ? adjList[id].map((n) => `${n.to}(${n.w})`).join(", ")
                         : "NULL"}
@@ -433,12 +451,12 @@ function GraphBasicsVisualizer({
 
             {repTab === "sparse" && (
               <div className="max-h-44 overflow-y-auto font-mono text-xs">
-                <div className="mb-1 text-[11px] text-slate-400">
+                <div className="mb-1.5 text-xs text-[#85858b]">
                   Header: ({ids.length} rows, {ids.length} cols, {sparseRows.length} non-zero entries)
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {sparseRows.map((t, idx) => (
-                    <span key={idx} className="rounded border border-white/[0.08] bg-[#141827] px-2 py-1 text-sky-300">
+                    <span key={idx} className="rounded border border-[#ededed]/[0.08] bg-[#19191b] px-2 py-1 text-[#a1a1a6]">
                       ({t.r}, {t.c}, {t.w})
                     </span>
                   ))}
@@ -452,8 +470,8 @@ function GraphBasicsVisualizer({
         <>
           <InspectorBlock
             highlight
-            title="Custom Edge List Input"
-            description="Format: A-B:4, A-D:2 (Node1-Node2:Weight). Applies to BFS, DFS, MST & Dijkstra!"
+            title="Custom edge list input"
+            description="Format: A-B:4, A-D:2 (Node1-Node2:Weight), shared across BFS, DFS, MST, and Dijkstra"
           >
             <StudioTextarea rows={3} value={edgeText} onChange={(e) => setEdgeText(e.target.value)} />
             <StudioBtn
@@ -461,16 +479,16 @@ function GraphBasicsVisualizer({
               className="mt-2 w-full"
               onClick={() => {
                 const parsed = parseEdgeListText(edgeText);
-                if (!parsed) return setStatus("Invalid edge format. Try: A-B:4, B-C:5");
+                if (!parsed) return setStatus("Invalid edge format — try A-B:4, B-C:5");
                 setGraph(parsed);
-                setStatus(`Built custom graph (${parsed.vertices.length} vertices, ${parsed.edges.length} edges).`);
+                setStatus(`Built custom graph (${parsed.vertices.length} vertices, ${parsed.edges.length} edges)`);
               }}
             >
               Build Graph from Text
             </StudioBtn>
           </InspectorBlock>
 
-          <InspectorBlock title="Canvas Interaction Mode">
+          <InspectorBlock title="Canvas interaction mode">
             <div className="grid grid-cols-2 gap-1.5">
               <StudioBtn
                 variant={clickMode === "vertex" ? "primary" : "secondary"}
@@ -487,7 +505,7 @@ function GraphBasicsVisualizer({
             </div>
             <div className="mt-2 grid grid-cols-2 gap-2">
               <div>
-                <label className="mb-1 block text-[11px] text-slate-400">New Edge Weight</label>
+                <label className="mb-1 block text-xs text-[#a1a1a6]">New edge weight</label>
                 <StudioInput type="number" value={edgeWeight} onChange={(e) => setEdgeWeight(e.target.value)} />
               </div>
               <div className="flex items-end">
@@ -626,7 +644,7 @@ function GraphTraversalVisualizer({
         nodeStates: { ...nodeStates },
         frontier: [],
         order: [...order],
-        msg: `BFS Complete! Order: [${order.join(" -> ")}] | Graph is ${connected ? "CONNECTED" : "DISCONNECTED"} (${visited.size}/${verts.length} reached).`,
+        msg: `BFS complete — order [${order.join(" -> ")}], graph is ${connected ? "connected" : "disconnected"} (${visited.size}/${verts.length} reached)`,
       });
     } else {
       const stack: string[] = [];
@@ -634,7 +652,7 @@ function GraphTraversalVisualizer({
         nodeStates: {},
         frontier: [],
         order: [],
-        msg: `Start DFS from ${src}.`,
+        msg: `Start DFS from ${src}`,
       });
       function dfs(u: string) {
         visited.add(u);
@@ -645,7 +663,7 @@ function GraphTraversalVisualizer({
           nodeStates: { ...nodeStates },
           frontier: [...stack],
           order: [...order],
-          msg: `Push & Visit ${u} (Stack: [${stack.join(", ")}]).`,
+          msg: `Push and visit ${u} (stack: [${stack.join(", ")}])`,
         });
         for (const nb of adj[u]) {
           if (!visited.has(nb)) {
@@ -656,7 +674,7 @@ function GraphTraversalVisualizer({
               nodeStates: { ...nodeStates },
               frontier: [...stack],
               order: [...order],
-              msg: `Backtrack to ${u}.`,
+              msg: `Backtrack to ${u}`,
             });
           }
         }
@@ -668,7 +686,7 @@ function GraphTraversalVisualizer({
         nodeStates: { ...nodeStates },
         frontier: [],
         order: [...order],
-        msg: `DFS Complete! Order: [${order.join(" -> ")}]`,
+        msg: `DFS complete — order [${order.join(" -> ")}]`,
       });
     }
     return out;
@@ -706,13 +724,13 @@ function GraphTraversalVisualizer({
         <div className="space-y-3">
           <GraphSvgStage vertices={graph.vertices} edges={graph.edges} nodeStates={cur.nodeStates} />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <div className="rounded-lg border border-white/[0.08] bg-[#10131e] px-3 py-2 font-mono text-xs">
-              <span className="text-slate-400">{mode === "bfs" ? "Queue: " : "Call Stack: "}</span>
-              <span className="font-bold text-amber-300">[{cur.frontier.join(", ") || "empty"}]</span>
+            <div className="rounded-lg border border-[#ededed]/[0.08] bg-[#19191b] px-3 py-2 font-mono text-xs">
+              <span className="text-[#85858b]">{mode === "bfs" ? "Queue: " : "Call stack: "}</span>
+              <span className="font-medium text-[#60a5fa]">[{cur.frontier.join(", ") || "empty"}]</span>
             </div>
-            <div className="rounded-lg border border-white/[0.08] bg-[#10131e] px-3 py-2 font-mono text-xs">
-              <span className="text-slate-400">Traversal: </span>
-              <span className="font-bold text-emerald-300">{cur.order.join(" -> ") || "—"}</span>
+            <div className="rounded-lg border border-[#ededed]/[0.08] bg-[#19191b] px-3 py-2 font-mono text-xs">
+              <span className="text-[#85858b]">Traversal: </span>
+              <span className="font-medium text-[#4cc38a]">{cur.order.join(" -> ") || "—"}</span>
             </div>
           </div>
         </div>
@@ -732,8 +750,8 @@ function GraphTraversalVisualizer({
           speed={speed}
           onSpeedChange={setSpeed}
           legend={[
-            { label: "Unvisited", colorClass: "bg-indigo-600" },
-            { label: mode === "bfs" ? "In Queue" : "Active Branch", colorClass: "bg-amber-500" },
+            { label: "Unvisited", colorClass: "bg-indigo-500" },
+            { label: mode === "bfs" ? "In queue" : "Active branch", colorClass: "bg-amber-500" },
             { label: "Current", colorClass: "bg-violet-500" },
             { label: "Visited", colorClass: "bg-emerald-500" },
           ]}
@@ -886,7 +904,7 @@ function MSTVisualizer({
             nodeStates: { ...nodeStates },
             edgeStates: { ...edgeStates },
             totalWeight: total,
-            msg: `Skip ${e.a}-${e.b} (w=${e.w}) — forms a cycle!`,
+            msg: `Skip ${e.a}-${e.b} (w=${e.w}) — forms a cycle`,
           });
         }
       }
@@ -895,7 +913,7 @@ function MSTVisualizer({
       nodeStates: { ...nodeStates },
       edgeStates: { ...edgeStates },
       totalWeight: total,
-      msg: `MST Complete! Minimum Total Weight = ${total}`,
+      msg: `MST complete — minimum total weight = ${total}`,
     });
     return out;
   }, [graph, algo]);
@@ -945,8 +963,8 @@ function MSTVisualizer({
             speed={speed}
             onSpeedChange={setSpeed}
             legend={[
-              { label: "In MST", colorClass: "bg-emerald-500" },
-              { label: "Skipped (Cycle)", colorClass: "bg-rose-500" },
+              { label: "In MST", colorClass: "bg-[#4cc38a]" },
+              { label: "Skipped (cycle)", colorClass: "bg-[#e5484d]" },
             ]}
           />
         }
@@ -1070,7 +1088,7 @@ function DijkstraVisualizer({
             edgeStates: { ...treeEdges, [`${e.a}-${e.b}`]: "active" },
             dist: { ...dist },
             parent: { ...parent },
-            msg: `Relax ${u}->${nb}: ${dist[u]} + ${e.w} = ${dist[nb]} (improved!).`,
+            msg: `Relax ${u}->${nb}: ${dist[u]} + ${e.w} = ${dist[nb]} (improved)`,
           });
         }
       }
@@ -1084,7 +1102,7 @@ function DijkstraVisualizer({
       edgeStates: finalEdges,
       dist: { ...dist },
       parent: { ...parent },
-      msg: `Dijkstra complete from source ${src}!`,
+      msg: `Dijkstra complete from source ${src}`,
     });
     return out;
   }, [graph, source]);
@@ -1123,27 +1141,27 @@ function DijkstraVisualizer({
             edgeStates={cur.edgeStates}
             distLabels={distLabels}
           />
-          <div className="overflow-x-auto rounded-lg border border-white/[0.08] bg-[#10131e] p-2">
-            <table className="w-full text-center font-mono text-xs">
+          <div className="overflow-x-auto rounded-lg border border-[#ededed]/[0.08] bg-[#19191b] p-2">
+            <table className="w-full text-center font-mono text-xs tabular-nums">
               <thead>
-                <tr className="text-slate-400">
-                  <th className="px-2 py-1 text-left">Vertex</th>
-                  {graph.vertices.map((v) => <th key={v.id} className="px-2 py-1">{v.id}</th>)}
+                <tr className="text-[#85858b]">
+                  <th className="px-2 py-1 text-left font-medium">Vertex</th>
+                  {graph.vertices.map((v) => <th key={v.id} className="px-2 py-1 font-medium">{v.id}</th>)}
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-t border-white/[0.06]">
-                  <td className="px-2 py-1 text-left text-slate-400">dist[]</td>
+                <tr className="border-t border-[#ededed]/[0.06]">
+                  <td className="px-2 py-1.5 text-left text-[#85858b]">dist[]</td>
                   {graph.vertices.map((v) => (
-                    <td key={v.id} className="px-2 py-1 font-bold text-amber-300">
+                    <td key={v.id} className="px-2 py-1.5 font-medium text-amber-400">
                       {cur.dist[v.id] === Infinity ? "INF" : cur.dist[v.id]}
                     </td>
                   ))}
                 </tr>
-                <tr className="border-t border-white/[0.06]">
-                  <td className="px-2 py-1 text-left text-slate-400">parent[]</td>
+                <tr className="border-t border-[#ededed]/[0.06]">
+                  <td className="px-2 py-1.5 text-left text-[#85858b]">parent[]</td>
                   {graph.vertices.map((v) => (
-                    <td key={v.id} className="px-2 py-1 text-sky-300">
+                    <td key={v.id} className="px-2 py-1.5 text-[#60a5fa]">
                       {cur.parent[v.id] ?? "—"}
                     </td>
                   ))}
@@ -1293,14 +1311,14 @@ function FloydWarshallVisualizer() {
       isPlaying={playing}
       stage={
         <div className="flex justify-center overflow-x-auto py-4">
-          <table className="border-collapse font-mono text-sm">
+          <table className="border-collapse font-mono text-sm tabular-nums">
             <thead>
               <tr>
-                <th className="p-2 text-slate-500">i \ j</th>
+                <th className="p-2 font-medium text-[#85858b]">i \ j</th>
                 {labels.map((l, idx) => (
                   <th
                     key={l}
-                    className={`p-2 ${cur.k === idx ? "text-amber-300" : "text-slate-400"}`}
+                    className={`p-2 font-medium ${cur.k === idx ? "text-amber-400" : "text-[#85858b]"}`}
                   >
                     {l}
                   </th>
@@ -1310,19 +1328,19 @@ function FloydWarshallVisualizer() {
             <tbody>
               {cur.mat.map((row, i) => (
                 <tr key={i}>
-                  <th className={`p-2 ${cur.k === i ? "text-amber-300" : "text-slate-400"}`}>{labels[i]}</th>
+                  <th className={`p-2 font-medium ${cur.k === i ? "text-amber-400" : "text-[#85858b]"}`}>{labels[i]}</th>
                   {row.map((val, j) => {
                     const isUpdated = cur.hi === i && cur.hj === j;
                     const onPivot = cur.k === i || cur.k === j;
                     return (
                       <td
                         key={j}
-                        className={`h-12 w-14 border border-white/[0.08] text-center font-bold transition-colors ${
+                        className={`h-12 w-14 border border-[#ededed]/[0.08] text-center font-medium transition-colors duration-150 ${
                           isUpdated
-                            ? "bg-emerald-500/25 text-emerald-200 ring-2 ring-emerald-400"
+                            ? "bg-[#4cc38a]/20 text-[#4cc38a] ring-1 ring-[#4cc38a]"
                             : onPivot
-                            ? "bg-amber-500/10 text-amber-200"
-                            : "bg-[#121625] text-slate-200"
+                            ? "bg-amber-500/10 text-amber-300"
+                            : "bg-[#19191b] text-[#ededed]"
                         }`}
                       >
                         {val >= INF ? "INF" : val}
@@ -1350,9 +1368,9 @@ function FloydWarshallVisualizer() {
       }
       inspector={
         <>
-          <InspectorBlock highlight title="Edit Adjacency Weight Matrix" description="Type weights or 'INF' directly into any cell.">
+          <InspectorBlock highlight title="Edit adjacency weight matrix" description="Type weights or 'INF' directly into any cell">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-[11px] text-slate-400">Vertices (N)</span>
+              <span className="text-xs text-[#a1a1a6]">Vertices (N)</span>
               <StudioSelect
                 className="w-24"
                 value={size}
@@ -1374,7 +1392,7 @@ function FloydWarshallVisualizer() {
             <div className="space-y-1 overflow-x-auto">
               {Array.from({ length: size }, (_, i) => (
                 <div key={i} className="flex items-center gap-1">
-                  <span className="w-4 font-mono text-[11px] text-slate-400">{labels[i]}</span>
+                  <span className="w-4 font-mono text-xs text-[#85858b]">{labels[i]}</span>
                   {Array.from({ length: size }, (_, j) => (
                     <input
                       key={j}
@@ -1388,7 +1406,7 @@ function FloydWarshallVisualizer() {
                           )
                         );
                       }}
-                      className="h-8 w-11 rounded border border-white/[0.1] bg-[#0b0d14] text-center font-mono text-[11px] text-slate-100 outline-none focus:border-violet-500 disabled:opacity-45"
+                      className="h-8 w-11 rounded border border-[#ededed]/[0.1] bg-[#0f0f10] text-center font-mono text-xs text-[#ededed] outline-none transition-colors duration-150 focus:border-amber-500/70 disabled:opacity-45"
                     />
                   ))}
                 </div>
@@ -1445,7 +1463,7 @@ function WarshallVisualizer() {
               k,
               hi: i,
               hj: j,
-              msg: `Transitive path found: ${labels[i]} -> ${labels[k]} -> ${labels[j]}! Set R[${labels[i]}][${labels[j]}] = 1.`,
+              msg: `Transitive path found: ${labels[i]} -> ${labels[k]} -> ${labels[j]} — set R[${labels[i]}][${labels[j]}] = 1`,
             });
           }
         }
@@ -1484,30 +1502,30 @@ function WarshallVisualizer() {
       isPlaying={playing}
       stage={
         <div className="flex justify-center overflow-x-auto py-4">
-          <table className="border-collapse font-mono text-sm">
+          <table className="border-collapse font-mono text-sm tabular-nums">
             <thead>
               <tr>
-                <th className="p-2 text-slate-500">i \ j</th>
+                <th className="p-2 font-medium text-[#85858b]">i \ j</th>
                 {labels.map((l, idx) => (
-                  <th key={l} className={`p-2 ${cur.k === idx ? "text-amber-300" : "text-slate-400"}`}>{l}</th>
+                  <th key={l} className={`p-2 font-medium ${cur.k === idx ? "text-amber-400" : "text-[#85858b]"}`}>{l}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {cur.mat.map((row, i) => (
                 <tr key={i}>
-                  <th className={`p-2 ${cur.k === i ? "text-amber-300" : "text-slate-400"}`}>{labels[i]}</th>
+                  <th className={`p-2 font-medium ${cur.k === i ? "text-amber-400" : "text-[#85858b]"}`}>{labels[i]}</th>
                   {row.map((val, j) => {
                     const isNew = cur.hi === i && cur.hj === j;
                     return (
                       <td
                         key={j}
-                        className={`h-12 w-12 border border-white/[0.08] text-center font-bold ${
+                        className={`h-12 w-12 border border-[#ededed]/[0.08] text-center font-medium ${
                           isNew
-                            ? "bg-emerald-500/30 text-emerald-200 ring-2 ring-emerald-400"
+                            ? "bg-[#4cc38a]/20 text-[#4cc38a] ring-1 ring-[#4cc38a]"
                             : val === 1
-                            ? "bg-violet-500/15 text-violet-300"
-                            : "bg-[#121625] text-slate-600"
+                            ? "bg-amber-500/12 text-amber-300"
+                            : "bg-[#19191b] text-[#85858b]/60"
                         }`}
                       >
                         {val}
@@ -1534,9 +1552,9 @@ function WarshallVisualizer() {
         />
       }
       inspector={
-        <InspectorBlock highlight title="Click Cells to Toggle 0 / 1" description="Define which direct edges i -> j exist in your graph.">
+        <InspectorBlock highlight title="Click cells to toggle 0 / 1" description="Define which direct edges i -> j exist in your graph">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[11px] text-slate-400">Matrix Size</span>
+            <span className="text-xs text-[#a1a1a6]">Matrix size</span>
             <StudioSelect
               className="w-24"
               value={size}
@@ -1556,7 +1574,7 @@ function WarshallVisualizer() {
           <div className="space-y-1">
             {Array.from({ length: size }, (_, i) => (
               <div key={i} className="flex items-center gap-1">
-                <span className="w-4 font-mono text-[11px] text-slate-400">{labels[i]}</span>
+                <span className="w-4 font-mono text-xs text-[#85858b]">{labels[i]}</span>
                 {Array.from({ length: size }, (_, j) => {
                   const val = mat[i]?.[j] ?? 0;
                   return (
@@ -1568,10 +1586,10 @@ function WarshallVisualizer() {
                           prev.map((r, ri) => (ri === i ? r.map((c, ci) => (ci === j ? (c ? 0 : 1) : c)) : r))
                         )
                       }
-                      className={`h-8 w-10 rounded border font-mono text-xs font-bold transition cursor-pointer ${
+                      className={`h-8 w-10 rounded border font-mono text-xs font-medium transition-colors duration-150 cursor-pointer ${
                         val
-                          ? "border-violet-400/60 bg-violet-500/20 text-violet-200"
-                          : "border-white/[0.08] bg-[#0b0d14] text-slate-500"
+                          ? "border-amber-500/60 bg-amber-500/15 text-amber-300"
+                          : "border-[#ededed]/[0.08] bg-[#0f0f10] text-[#85858b]"
                       }`}
                     >
                       {val}

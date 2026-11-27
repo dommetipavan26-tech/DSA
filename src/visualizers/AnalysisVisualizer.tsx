@@ -16,12 +16,12 @@ import {
 import type { TopicId } from "../data/syllabus";
 
 const COMPLEXITIES = [
-  { id: "o1", label: "O(1)", name: "Constant", color: "#10b981", fn: (_n: number) => 1 },
-  { id: "ologn", label: "O(log n)", name: "Logarithmic", color: "#38bdf8", fn: (n: number) => Math.max(1, Math.log2(n)) },
-  { id: "on", label: "O(n)", name: "Linear", color: "#8b5cf6", fn: (n: number) => n },
+  { id: "o1", label: "O(1)", name: "Constant", color: "#4cc38a", fn: (_n: number) => 1 },
+  { id: "ologn", label: "O(log n)", name: "Logarithmic", color: "#60a5fa", fn: (n: number) => Math.max(1, Math.log2(n)) },
+  { id: "on", label: "O(n)", name: "Linear", color: "#ededed", fn: (n: number) => n },
   { id: "onlogn", label: "O(n log n)", name: "Linearithmic", color: "#f59e0b", fn: (n: number) => n * Math.max(1, Math.log2(n)) },
-  { id: "on2", label: "O(n^2)", name: "Quadratic", color: "#f43f5e", fn: (n: number) => n * n },
-  { id: "o2n", label: "O(2^n)", name: "Exponential", color: "#ec4899", fn: (n: number) => Math.pow(2, Math.min(n, 20)) },
+  { id: "on2", label: "O(n^2)", name: "Quadratic", color: "#e5484d", fn: (n: number) => n * n },
+  { id: "o2n", label: "O(2^n)", name: "Exponential", color: "#fb923c", fn: (n: number) => Math.pow(2, Math.min(n, 20)) },
 ];
 
 export function AsymptoticVisualizer() {
@@ -45,14 +45,13 @@ export function AsymptoticVisualizer() {
     }
   };
 
-  // Build SVG polylines normalized to max value at current n (capped cleanly so smaller curves remain visible)
   const chartData = useMemo(() => {
-    const W = 620;
-    const H = 260;
-    const padL = 42;
-    const padR = 20;
+    const W = 640;
+    const H = 268;
+    const padL = 56;
+    const padR = 82;
     const padT = 18;
-    const padB = 30;
+    const padB = 34;
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
     const maxY = Math.max(
@@ -64,7 +63,7 @@ export function AsymptoticVisualizer() {
     );
     const cappedMaxY = Math.min(maxY, nVal * nVal * 1.1 + 10);
 
-    const curves = COMPLEXITIES.filter((c) => activeIds.includes(c.id)).map((c) => {
+    const rawCurves = COMPLEXITIES.filter((c) => activeIds.includes(c.id)).map((c) => {
       const pts: string[] = [];
       const steps = 28;
       for (let s = 0; s <= steps; s++) {
@@ -75,39 +74,66 @@ export function AsymptoticVisualizer() {
         const y = padT + plotH - normY * plotH;
         pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
       }
-      const endY = Math.min(1, c.fn(nVal) / cappedMaxY);
+      const endY = padT + plotH - Math.min(1, c.fn(nVal) / cappedMaxY) * plotH;
       return {
         ...c,
         points: pts.join(" "),
         endX: padL + plotW,
-        endY: padT + plotH - endY * plotH,
+        endY,
+        labelY: endY,
         ops: c.fn(nVal),
       };
     });
 
-    return { W, H, padL, padT, plotW, plotH, curves };
+    // Enforce vertical separation so curve labels never overlap
+    const sorted = [...rawCurves].sort((a, b) => a.endY - b.endY);
+    const minGap = 16;
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].labelY - sorted[i - 1].labelY < minGap) {
+        sorted[i].labelY = sorted[i - 1].labelY + minGap;
+      }
+    }
+    const maxLabelY = padT + plotH - 2;
+    if (sorted.length && sorted[sorted.length - 1].labelY > maxLabelY) {
+      sorted[sorted.length - 1].labelY = maxLabelY;
+      for (let i = sorted.length - 2; i >= 0; i--) {
+        if (sorted[i + 1].labelY - sorted[i].labelY < minGap) {
+          sorted[i].labelY = Math.max(padT + 6, sorted[i + 1].labelY - minGap);
+        }
+      }
+    }
+
+    const yTicks = [0, 0.5, 1].map((frac) => {
+      const val = Math.round(frac * cappedMaxY);
+      return {
+        y: padT + plotH - frac * plotH,
+        label: val > 999 ? `${(val / 1000).toFixed(1)}k` : String(val),
+      };
+    });
+
+    return { W, H, padL, padT, plotW, plotH, curves: sorted, yTicks };
   }, [nVal, activeIds]);
 
   const notationDetails = {
     bigO: {
       title: "Big-O: O(g(n)) — Upper Bound (Worst Case)",
-      formula: "0 <= f(n) <= c * g(n)  for all n >= n0",
-      desc: "Guarantees the algorithm will never grow faster than g(n) beyond threshold n0.",
+      formula: "0 <= f(n) <= c * g(n) for all n >= n0",
+      desc: "Guarantees the algorithm never grows faster than g(n) beyond threshold n0.",
     },
     omega: {
       title: "Big-Omega: Omega(g(n)) — Lower Bound (Best Case)",
-      formula: "0 <= c * g(n) <= f(n)  for all n >= n0",
+      formula: "0 <= c * g(n) <= f(n) for all n >= n0",
       desc: "Guarantees the algorithm requires at least c * g(n) operations.",
     },
     theta: {
       title: "Big-Theta: Theta(g(n)) — Tight Bound (Exact Growth)",
-      formula: "c1 * g(n) <= f(n) <= c2 * g(n)  for all n >= n0",
-      desc: "Sandwiches f(n) from both above and below — exact asymptotic rate.",
+      formula: "c1 * g(n) <= f(n) <= c2 * g(n) for all n >= n0",
+      desc: "Sandwiches f(n) from both above and below for an exact asymptotic rate.",
     },
     littleO: {
       title: "Little-o: o(g(n)) — Strict Upper Bound",
       formula: "lim (n -> inf) f(n) / g(n) = 0",
-      desc: "Strictly slower growth than g(n), e.g., n is o(n^2) but NOT o(n).",
+      desc: "Strictly slower growth than g(n), e.g., n is o(n^2) but not o(n).",
     },
   }[notation];
 
@@ -127,65 +153,105 @@ export function AsymptoticVisualizer() {
 
       <VisualizerWorkspace
         badge={`n = ${nVal}`}
-        statusText={`${notationDetails.title}  |  ${notationDetails.formula}`}
+        statusText={`${notationDetails.title}  ·  ${notationDetails.formula}`}
         stage={
           <div className="space-y-4">
             <svg viewBox={`0 0 ${chartData.W} ${chartData.H}`} className="w-full overflow-visible">
-              {/* Axes */}
+              {/* Muted Horizontal Grid Lines */}
+              {chartData.yTicks.map((t, idx) => (
+                <g key={idx}>
+                  <line
+                    x1={chartData.padL}
+                    y1={t.y}
+                    x2={chartData.padL + chartData.plotW}
+                    y2={t.y}
+                    stroke="rgba(237,237,237,0.07)"
+                    strokeDasharray={idx === 0 ? undefined : "3 4"}
+                    strokeWidth="1"
+                  />
+                  <text
+                    x={chartData.padL - 8}
+                    y={t.y}
+                    textAnchor="end"
+                    dominantBaseline="central"
+                    fill="#85858b"
+                    fontSize="11"
+                    fontFamily="JetBrains Mono, monospace"
+                  >
+                    {t.label}
+                  </text>
+                </g>
+              ))}
+
+              {/* Y Axis */}
               <line
                 x1={chartData.padL}
                 y1={chartData.padT}
                 x2={chartData.padL}
                 y2={chartData.padT + chartData.plotH}
-                stroke="#334155"
-                strokeWidth="1.5"
+                stroke="rgba(237,237,237,0.16)"
+                strokeWidth="1"
               />
-              <line
-                x1={chartData.padL}
-                y1={chartData.padT + chartData.plotH}
-                x2={chartData.padL + chartData.plotW}
-                y2={chartData.padT + chartData.plotH}
-                stroke="#334155"
-                strokeWidth="1.5"
-              />
+              {/* X Axis Labels */}
+              <text
+                x={chartData.padL}
+                y={chartData.H - 8}
+                textAnchor="start"
+                fill="#85858b"
+                fontSize="11"
+                fontFamily="JetBrains Mono, monospace"
+              >
+                n = 1
+              </text>
               <text
                 x={chartData.padL + chartData.plotW / 2}
-                y={chartData.H - 6}
+                y={chartData.H - 8}
                 textAnchor="middle"
-                fill="#94a3b8"
+                fill="#85858b"
                 fontSize="11"
               >
-                Input Size (n = 1 to {nVal})
+                Input size
               </text>
               <text
-                x={14}
-                y={chartData.padT + chartData.plotH / 2}
-                textAnchor="middle"
-                fill="#94a3b8"
+                x={chartData.padL + chartData.plotW}
+                y={chartData.H - 8}
+                textAnchor="end"
+                fill="#85858b"
                 fontSize="11"
-                transform={`rotate(-90 14 ${chartData.padT + chartData.plotH / 2})`}
+                fontFamily="JetBrains Mono, monospace"
               >
-                Operations
+                n = {nVal}
               </text>
 
-              {/* Curves */}
+              {/* Curves + De-collided Labels */}
               {chartData.curves.map((c) => (
                 <g key={c.id}>
                   <polyline
                     fill="none"
                     stroke={c.color}
-                    strokeWidth="2.5"
+                    strokeWidth="2"
                     strokeLinecap="round"
                     points={c.points}
                   />
-                  <circle cx={c.endX} cy={c.endY} r="4" fill={c.color} />
+                  <circle cx={c.endX} cy={c.endY} r="3.5" fill={c.color} />
+                  <line
+                    x1={c.endX + 4}
+                    y1={c.endY}
+                    x2={c.endX + 10}
+                    y2={c.labelY}
+                    stroke={c.color}
+                    strokeOpacity="0.45"
+                    strokeWidth="1"
+                  />
                   <text
-                    x={c.endX - 6}
-                    y={Math.max(14, c.endY - 7)}
-                    textAnchor="end"
+                    x={c.endX + 13}
+                    y={c.labelY}
+                    textAnchor="start"
+                    dominantBaseline="central"
                     fill={c.color}
-                    fontSize="10"
-                    fontWeight="700"
+                    fontSize="11"
+                    fontWeight="500"
+                    fontFamily="JetBrains Mono, monospace"
                   >
                     {c.label}
                   </text>
@@ -193,19 +259,19 @@ export function AsymptoticVisualizer() {
               ))}
             </svg>
 
-            {/* Live operation count strip */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {/* Operation count strip */}
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               {COMPLEXITIES.filter((c) => activeIds.includes(c.id)).map((c) => {
                 const ops = c.fn(nVal);
                 return (
                   <div
                     key={c.id}
-                    className="flex items-center justify-between rounded-lg border border-white/[0.07] bg-[#111522] px-3 py-2 text-xs"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-[#ededed]/[0.08] bg-[#19191b] px-3 py-2 text-xs"
                   >
-                    <span className="font-mono font-semibold" style={{ color: c.color }}>
+                    <span className="shrink-0 font-mono font-medium" style={{ color: c.color }}>
                       {c.label}
                     </span>
-                    <span className="font-mono text-slate-300">
+                    <span className="font-mono tabular-nums text-[#a1a1a6]">
                       {ops > 1e6 ? ops.toExponential(1) : Math.round(ops).toLocaleString()} ops
                     </span>
                   </div>
@@ -218,8 +284,8 @@ export function AsymptoticVisualizer() {
           <>
             <InspectorBlock
               highlight
-              title="Custom Input Size (n)"
-              description="Enter any n (2 to 64) or slide to see how fast each complexity grows."
+              title="Custom input size (n)"
+              description="Enter n from 2 to 64 or drag to inspect curve growth"
             >
               <div className="flex gap-2">
                 <StudioInput
@@ -244,11 +310,12 @@ export function AsymptoticVisualizer() {
                   setNVal(v);
                   setCustomNText(String(v));
                 }}
-                className="mt-3 h-1.5 w-full cursor-pointer accent-violet-500"
+                aria-label="Input size n"
+                className="mt-3 h-1.5 w-full cursor-pointer accent-amber-500"
               />
             </InspectorBlock>
 
-            <InspectorBlock title="Toggle Complexity Curves">
+            <InspectorBlock title="Toggle complexity curves">
               <div className="flex flex-wrap gap-1.5">
                 {COMPLEXITIES.map((c) => {
                   const on = activeIds.includes(c.id);
@@ -257,11 +324,11 @@ export function AsymptoticVisualizer() {
                       key={c.id}
                       type="button"
                       onClick={() => toggleCurve(c.id)}
-                      className="rounded-md border px-2.5 py-1 font-mono text-xs font-medium transition cursor-pointer"
+                      className="rounded-md border px-2.5 py-1 font-mono text-xs font-medium transition-colors duration-150 cursor-pointer"
                       style={{
-                        borderColor: on ? c.color : "rgba(255,255,255,0.08)",
-                        backgroundColor: on ? `${c.color}22` : "#181d2e",
-                        color: on ? c.color : "#64748b",
+                        borderColor: on ? c.color : "rgba(237,237,237,0.08)",
+                        backgroundColor: on ? `${c.color}1c` : "#232325",
+                        color: on ? c.color : "#85858b",
                       }}
                     >
                       {c.label}
@@ -286,8 +353,8 @@ export function AsymptoticVisualizer() {
               />
             </InspectorBlock>
 
-            <InspectorBlock title="Selected Notation">
-              <p className="text-xs leading-relaxed text-slate-300">{notationDetails.desc}</p>
+            <InspectorBlock title="Selected notation">
+              <p className="text-xs leading-relaxed text-[#a1a1a6]">{notationDetails.desc}</p>
             </InspectorBlock>
           </>
         }
@@ -445,25 +512,26 @@ export function RecursionVisualizer() {
         stage={
           <div className="mx-auto flex max-w-lg flex-col gap-2.5 py-2">
             {cur.stack.length === 0 ? (
-              <div className="py-12 text-center text-sm text-slate-500">
-                Press Play or Step Forward to trace execution.
+              <div className="py-12 text-center text-sm text-[#85858b]">
+                Press Play or Step Forward to trace execution
               </div>
             ) : (
               cur.stack.map((frame, i) => (
                 <motion.div
                   key={`${frame.label}-${i}`}
                   layout
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                   className={`flex items-center justify-between rounded-lg border px-4 py-2.5 font-mono text-sm ${
                     frame.active
-                      ? "border-violet-400 bg-violet-500/15 text-white shadow-[0_0_20px_-6px_rgba(139,92,246,0.6)]"
-                      : "border-white/[0.08] bg-[#121625] text-slate-300"
+                      ? "border-amber-500/70 bg-amber-500/10 text-[#ededed]"
+                      : "border-[#ededed]/[0.08] bg-[#19191b] text-[#a1a1a6]"
                   }`}
                 >
                   <span>{frame.label}</span>
                   {frame.result && (
-                    <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">
+                    <span className="rounded bg-[#4cc38a]/15 px-2 py-0.5 text-xs tabular-nums text-[#4cc38a]">
                       = {frame.result}
                     </span>
                   )}
@@ -471,7 +539,7 @@ export function RecursionVisualizer() {
               ))
             )}
             {cur.output && (
-              <div className="mt-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-center font-mono text-sm font-semibold text-emerald-300">
+              <div className="mt-2 rounded-lg border border-[#4cc38a]/35 bg-[#4cc38a]/10 px-4 py-2 text-center font-mono text-sm font-medium tabular-nums text-[#4cc38a]">
                 {cur.output}
               </div>
             )}
@@ -504,7 +572,7 @@ export function RecursionVisualizer() {
         }
         inspector={
           mode === "factorial" ? (
-            <InspectorBlock highlight title="Factorial Input (n)" description="Enter n (1 to 8) to watch stack frames push and unwind.">
+            <InspectorBlock highlight title="Factorial input (n)" description="Enter n from 1 to 8 to trace stack frames">
               <div className="flex gap-2">
                 <StudioInput
                   type="number"
@@ -521,8 +589,8 @@ export function RecursionVisualizer() {
           ) : (
             <InspectorBlock
               highlight
-              title="Custom Matrix Input"
-              description="One row per line, space-separated values."
+              title="Custom matrix input"
+              description="One row per line, space-separated values"
             >
               <StudioTextarea
                 rows={4}

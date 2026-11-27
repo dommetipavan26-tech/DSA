@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,13 +8,12 @@ import {
   Play,
   RotateCcw,
   SlidersHorizontal,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { BorderBeam, DotPattern, ShimmerButton } from "./magic-ui";
-import { BorderTrail, SlidingNumber, TextEffect } from "./motion-primitives";
+import { SlidingNumber } from "./motion-primitives";
 
-/* 21st.dev Pattern: MorphingPillTabs (shared layoutId active pill) */
+const EASE_INSTRUMENT: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
 export interface TabOption<T extends string = string> {
   id: T;
   label: string;
@@ -35,7 +34,12 @@ export function MorphingPillTabs<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", className)}>
+    <div
+      className={cn(
+        "inline-flex max-w-full flex-wrap items-center gap-1 rounded-xl border border-[#ededed]/[0.08] bg-[#19191b] p-1",
+        className
+      )}
+    >
       {options.map((opt) => {
         const active = opt.id === value;
         return (
@@ -44,23 +48,22 @@ export function MorphingPillTabs<T extends string>({
             type="button"
             onClick={() => onChange(opt.id)}
             className={cn(
-              "relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer",
-              active
-                ? "text-white"
-                : "border border-white/[0.08] bg-[#131724] text-slate-400 hover:border-white/[0.18] hover:text-slate-200"
+              "relative rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-150 cursor-pointer",
+              active ? "text-[#ededed]" : "text-[#85858b] hover:text-[#ededed]"
             )}
           >
             {active && (
               <motion.span
                 layoutId={layoutId}
-                transition={{ type: "spring", stiffness: 420, damping: 32 }}
-                className="absolute inset-0 rounded-full border border-violet-400/60 bg-violet-500/20 shadow-[0_0_16px_rgba(124,58,237,0.28)]"
+                transition={{ duration: 0.18, ease: EASE_INSTRUMENT }}
+                className="absolute inset-0 rounded-lg border border-[#ededed]/[0.14] bg-[#232325] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
               />
             )}
             <span className="relative z-10 inline-flex items-center gap-1.5">
+              {active && <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />}
               {opt.label}
               {opt.badge && (
-                <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-mono text-violet-200">
+                <span className="rounded bg-[#141415] px-1.5 py-0.5 font-mono text-xs text-[#a1a1a6]">
                   {opt.badge}
                 </span>
               )}
@@ -72,7 +75,6 @@ export function MorphingPillTabs<T extends string>({
   );
 }
 
-/* 21st.dev + Reference Studio Stage & Transport Dock */
 export interface LegendEntry {
   label: string;
   colorClass: string;
@@ -109,44 +111,51 @@ export function PlaybackDock({
             type="button"
             onClick={onReset}
             title="Reset"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.1] bg-[#171b2a] text-slate-300 transition hover:border-violet-500/50 hover:text-white cursor-pointer"
+            aria-label="Reset"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ededed]/[0.1] bg-[#232325] text-[#a1a1a6] transition-colors duration-150 hover:border-[#ededed]/[0.2] hover:text-[#ededed] active:scale-[0.98] cursor-pointer"
           >
-            <RotateCcw className="h-4 w-4" />
+            <RotateCcw className="h-4 w-4" strokeWidth={1.5} />
           </button>
           <button
             type="button"
             onClick={onStepBack}
             disabled={!canStepBack}
             title="Step Back"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.1] bg-[#171b2a] text-slate-300 transition hover:border-violet-500/50 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            aria-label="Step Back"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ededed]/[0.1] bg-[#232325] text-[#a1a1a6] transition-colors duration-150 hover:border-[#ededed]/[0.2] hover:text-[#ededed] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
           </button>
-          <ShimmerButton onClick={onTogglePlay} className="h-9 min-w-[96px] px-4">
+          <button
+            type="button"
+            onClick={onTogglePlay}
+            className="inline-flex h-9 min-w-24 items-center justify-center gap-1.5 rounded-lg bg-[#f59e0b] px-4 text-sm font-medium text-[#141415] shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#fbbf24] active:scale-[0.98] cursor-pointer"
+          >
             {isPlaying ? (
               <>
-                <Pause className="h-4 w-4" />
+                <Pause className="h-4 w-4" strokeWidth={1.75} />
                 Pause
               </>
             ) : (
               <>
-                <Play className="h-4 w-4 fill-current" />
+                <Play className="h-4 w-4 fill-current" strokeWidth={1.75} />
                 Play
               </>
             )}
-          </ShimmerButton>
+          </button>
           <button
             type="button"
             onClick={onStepForward}
             disabled={!canStepForward}
             title="Step Forward"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.1] bg-[#171b2a] text-slate-300 transition hover:border-violet-500/50 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            aria-label="Step Forward"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ededed]/[0.1] bg-[#232325] text-[#a1a1a6] transition-colors duration-150 hover:border-[#ededed]/[0.2] hover:text-[#ededed] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
           </button>
         </div>
 
-        <div className="flex items-center gap-3 text-xs font-medium text-slate-400">
+        <div className="flex items-center gap-3 text-xs font-medium text-[#a1a1a6]">
           <span>Speed</span>
           <input
             type="range"
@@ -154,16 +163,17 @@ export function PlaybackDock({
             max={10}
             value={speed}
             onChange={(e) => onSpeedChange(Number(e.target.value))}
-            className="h-1.5 w-28 cursor-pointer accent-violet-500"
+            aria-label="Playback speed"
+            className="h-1.5 w-28 cursor-pointer accent-amber-500"
           />
-          <span className="w-6 text-right font-mono text-slate-300">{speed}x</span>
+          <span className="w-7 text-right font-mono tabular-nums text-[#ededed]">{speed}x</span>
         </div>
       </div>
 
       {legend && legend.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-white/[0.06] pt-2.5 text-xs text-slate-400">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#ededed]/[0.06] pt-3 text-xs text-[#a1a1a6]">
           {legend.map((item) => (
-            <span key={item.label} className="inline-flex items-center gap-1.5">
+            <span key={item.label} className="inline-flex items-center gap-2">
               <span className={cn("h-2.5 w-2.5 rounded-[3px]", item.colorClass)} />
               {item.label}
             </span>
@@ -174,7 +184,6 @@ export function PlaybackDock({
   );
 }
 
-/* Main 2-Column Studio Workspace matching the user's reference screenshots */
 export function VisualizerWorkspace({
   step,
   totalSteps,
@@ -198,58 +207,56 @@ export function VisualizerWorkspace({
 }) {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_285px] lg:grid-cols-[minmax(0,1fr)_295px] xl:grid-cols-[minmax(0,1fr)_330px]">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px]">
         {/* Left: Recessed Visual Canvas + Playback */}
-        <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.09] bg-[#10131e] p-4 sm:p-5">
-          {isPlaying && <BorderBeam duration={6} size={130} />}
-
+        <div className="flex min-w-0 flex-col gap-4 rounded-2xl border border-[#ededed]/[0.08] bg-[#19191b] p-4 sm:p-5">
           {/* Header Bar */}
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1 space-y-0.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 space-y-1">
               {typeof step === "number" && typeof totalSteps === "number" && (
-                <div className="flex items-center gap-1.5 text-sm text-slate-400">
+                <div className="flex items-center gap-1.5 text-xs text-[#85858b]">
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full transition-colors duration-150",
+                      isPlaying ? "bg-amber-500" : "bg-[#85858b]/60"
+                    )}
+                  />
                   <span>Step</span>
-                  <span className="font-mono font-bold text-white">
+                  <span className="font-mono font-medium tabular-nums text-[#ededed]">
                     <SlidingNumber value={step} />
                   </span>
                   <span>/</span>
-                  <span className="font-mono text-slate-400">{totalSteps}</span>
+                  <span className="font-mono tabular-nums text-[#a1a1a6]">{totalSteps}</span>
                 </div>
               )}
-              <div className="min-h-[22px] text-sm font-medium text-slate-200">
-                <TextEffect>{statusText}</TextEffect>
+              <div className="min-h-6 text-sm font-medium leading-6 text-[#ededed]">
+                {statusText}
               </div>
             </div>
 
-            <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-white/[0.1] bg-[#181c2b] px-2.5 py-1 text-xs font-medium text-slate-300">
+            <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-[#ededed]/[0.08] bg-[#232325] px-2.5 py-1 font-mono text-xs text-[#a1a1a6]">
               {badge}
             </span>
           </div>
 
-          {/* Inner Stage */}
-          <div className="relative flex min-h-[300px] items-center justify-center overflow-hidden rounded-xl border border-white/[0.07] bg-[#080a10] p-3 sm:p-4">
-            <DotPattern className="opacity-45 [mask-image:radial-gradient(ellipse_at_center,white_40%,transparent_88%)]" />
-            <div className="relative z-10 w-full">{stage}</div>
+          {/* Inner Stage — fills available vertical space cleanly without leaving dead gap */}
+          <div className="flex min-h-[320px] min-w-0 flex-1 flex-col justify-center overflow-hidden rounded-xl border border-[#ededed]/[0.07] bg-[#0f0f10] p-3 sm:p-4">
+            <div className="w-full min-w-0">{stage}</div>
           </div>
 
           {/* Controls */}
-          {controls && <div className="mt-4">{controls}</div>}
+          {controls && <div>{controls}</div>}
         </div>
 
-        {/* Right: User Input Inspector Sidebar */}
-        <div className="relative flex flex-col gap-3.5 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#10131e] p-4">
-          <BorderTrail size={80} />
-          <div className="relative z-10 flex items-center justify-between border-b border-white/[0.06] pb-2.5">
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-violet-300">
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              User Input & Controls
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium text-violet-300">
-              <Sparkles className="h-2.5 w-2.5" />
-              Interactive
+        {/* Right: User Input Inspector */}
+        <div className="flex flex-col gap-4 rounded-2xl border border-[#ededed]/[0.08] bg-[#19191b] p-5">
+          <div className="flex items-center justify-between border-b border-[#ededed]/[0.07] pb-3">
+            <span className="inline-flex items-center gap-2 text-sm font-medium text-[#ededed]">
+              <SlidersHorizontal className="h-4 w-4 text-[#85858b]" strokeWidth={1.5} />
+              Input &amp; controls
             </span>
           </div>
-          <div className="relative z-10 flex flex-col gap-3.5">{inspector}</div>
+          <div className="flex flex-col gap-3">{inspector}</div>
         </div>
       </div>
 
@@ -258,7 +265,6 @@ export function VisualizerWorkspace({
   );
 }
 
-/* Student-friendly Concept + Complexity + Java Implementation Accordion Card */
 export function ConceptNotesGrid({
   intuition,
   keyPoints,
@@ -274,32 +280,32 @@ export function ConceptNotesGrid({
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <div className="rounded-2xl border border-white/[0.08] bg-[#10131e] p-4 sm:p-5">
-        <h3 className="text-sm font-semibold text-white">Concept & Intuition</h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-slate-300">{intuition}</p>
-        <ul className="mt-3 space-y-1.5 text-xs leading-relaxed text-slate-400">
+      <div className="rounded-2xl border border-[#ededed]/[0.08] bg-[#19191b] p-5">
+        <h3 className="text-sm font-medium text-[#ededed]">Concept &amp; intuition</h3>
+        <p className="mt-2 text-sm leading-relaxed text-[#a1a1a6]">{intuition}</p>
+        <ul className="mt-4 space-y-2 text-xs leading-relaxed text-[#a1a1a6]">
           {keyPoints.map((pt, i) => (
-            <li key={i} className="flex items-start gap-2">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-400" />
+            <li key={i} className="flex items-start gap-2.5">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#85858b]" />
               <span>{pt}</span>
             </li>
           ))}
         </ul>
       </div>
 
-      <div className="flex flex-col justify-between rounded-2xl border border-white/[0.08] bg-[#10131e] p-4 sm:p-5">
+      <div className="flex flex-col justify-between rounded-2xl border border-[#ededed]/[0.08] bg-[#19191b] p-5">
         {complexities && complexities.length > 0 && (
           <div>
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-white">Time & Space Complexity</h3>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-medium text-[#ededed]">Time &amp; space complexity</h3>
               {javaCode && (
                 <button
                   type="button"
                   onClick={() => setShowCode((v) => !v)}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.1] bg-[#171b2a] px-2.5 py-1 text-xs font-medium text-slate-300 transition hover:border-violet-500/40 hover:text-white cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#ededed]/[0.1] bg-[#232325] px-2.5 py-1 text-xs font-medium text-[#a1a1a6] transition-colors duration-150 hover:border-[#ededed]/[0.2] hover:text-[#ededed] cursor-pointer"
                 >
-                  <Code2 className="h-3.5 w-3.5 text-violet-400" />
-                  {showCode ? "Hide Java Code" : "View Java Code"}
+                  <Code2 className="h-4 w-4 text-[#85858b]" strokeWidth={1.5} />
+                  {showCode ? "Hide Java code" : "View Java code"}
                 </button>
               )}
             </div>
@@ -307,22 +313,22 @@ export function ConceptNotesGrid({
             <div className="mt-3 overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-white/[0.08] text-[11px] uppercase tracking-wider text-slate-400">
-                    <th className="py-2 pr-3">Operation</th>
-                    <th className="py-2 pr-3">Best</th>
-                    <th className="py-2 pr-3">Average</th>
-                    <th className="py-2 pr-3">Worst</th>
-                    {complexities[0]?.space && <th className="py-2">Space</th>}
+                  <tr className="border-b border-[#ededed]/[0.08] text-xs font-medium text-[#85858b]">
+                    <th className="py-2 pr-3 font-medium">Operation</th>
+                    <th className="py-2 pr-3 font-medium">Best</th>
+                    <th className="py-2 pr-3 font-medium">Average</th>
+                    <th className="py-2 pr-3 font-medium">Worst</th>
+                    {complexities[0]?.space && <th className="py-2 font-medium">Space</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.05] font-mono">
+                <tbody className="divide-y divide-[#ededed]/[0.06] font-mono tabular-nums">
                   {complexities.map((row) => (
                     <tr key={row.op}>
-                      <td className="py-2 pr-3 font-sans font-medium text-slate-200">{row.op}</td>
-                      <td className="py-2 pr-3 text-emerald-400">{row.best}</td>
-                      <td className="py-2 pr-3 text-amber-300">{row.avg}</td>
-                      <td className="py-2 pr-3 text-rose-400">{row.worst}</td>
-                      {row.space && <td className="py-2 text-sky-300">{row.space}</td>}
+                      <td className="py-2.5 pr-3 font-sans font-medium text-[#ededed]">{row.op}</td>
+                      <td className="py-2.5 pr-3 text-[#4cc38a]">{row.best}</td>
+                      <td className="py-2.5 pr-3 text-amber-400">{row.avg}</td>
+                      <td className="py-2.5 pr-3 text-[#e5484d]">{row.worst}</td>
+                      {row.space && <td className="py-2.5 text-[#a1a1a6]">{row.space}</td>}
                     </tr>
                   ))}
                 </tbody>
@@ -331,18 +337,11 @@ export function ConceptNotesGrid({
           </div>
         )}
 
-        <AnimatePresence>
-          {showCode && javaCode && (
-            <motion.pre
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-3 overflow-x-auto rounded-xl border border-white/[0.08] bg-[#080a10] p-3 font-mono text-xs leading-relaxed text-slate-300"
-            >
-              <code>{javaCode}</code>
-            </motion.pre>
-          )}
-        </AnimatePresence>
+        {showCode && javaCode && (
+          <pre className="mt-4 overflow-x-auto rounded-lg border border-[#ededed]/[0.08] bg-[#0f0f10] p-4 font-mono text-xs leading-relaxed text-[#ededed]">
+            <code>{javaCode}</code>
+          </pre>
+        )}
       </div>
     </div>
   );

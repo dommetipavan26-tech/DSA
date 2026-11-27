@@ -86,7 +86,7 @@ function SearchVisualizer({ mode }: { mode: "linear" | "binary" }) {
             mid: i,
             foundIdx: i,
             eliminated: [...checked],
-            msg: `Found ${target} at index ${i} in ${i + 1} comparison(s)!`,
+            msg: `Found ${target} at index ${i} in ${i + 1} comparison(s)`,
           });
           return out;
         }
@@ -99,7 +99,7 @@ function SearchVisualizer({ mode }: { mode: "linear" | "binary" }) {
         mid: -1,
         foundIdx: -1,
         eliminated: [...checked],
-        msg: `${target} not found after scanning all ${work.length} elements.`,
+        msg: `${target} not found after scanning all ${work.length} elements`,
       });
     } else {
       let lo = 0;
@@ -116,7 +116,7 @@ function SearchVisualizer({ mode }: { mode: "linear" | "binary" }) {
           mid,
           foundIdx: -1,
           eliminated: elim,
-          msg: `Step ${comps}: lo=${lo}, hi=${hi}, mid=${mid} -> compare arr[${mid}]=${work[mid]} with ${target}.`,
+          msg: `Step ${comps}: lo=${lo}, hi=${hi}, mid=${mid} -> compare arr[${mid}]=${work[mid]} with ${target}`,
         });
         if (work[mid] === target) {
           out.push({
@@ -126,7 +126,7 @@ function SearchVisualizer({ mode }: { mode: "linear" | "binary" }) {
             mid,
             foundIdx: mid,
             eliminated: work.map((_, idx) => idx).filter((idx) => idx !== mid),
-            msg: `Found ${target} at index ${mid} in just ${comps} comparison(s)!`,
+            msg: `Found ${target} at index ${mid} in ${comps} comparison(s)`,
           });
           return out;
         }
@@ -195,19 +195,19 @@ function SearchVisualizer({ mode }: { mode: "linear" | "binary" }) {
             return (
               <div key={i} className="flex flex-col items-center gap-1.5">
                 <div
-                  className={`flex h-14 min-w-[50px] items-center justify-center rounded-xl border-2 px-3 font-mono text-sm font-bold transition-all ${
+                  className={`flex h-14 min-w-[50px] items-center justify-center rounded-xl border-2 px-3 font-mono text-sm font-medium tabular-nums transition-colors duration-150 ${
                     isFound
-                      ? "border-emerald-400 bg-emerald-500/25 text-emerald-200 scale-105 shadow-[0_0_20px_rgba(16,185,129,0.45)]"
+                      ? "border-emerald-400 bg-emerald-500/20 text-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.42)]"
                       : isMid
-                      ? "border-violet-400 bg-violet-500/25 text-white scale-105 shadow-[0_0_18px_rgba(124,58,237,0.5)]"
+                      ? "border-violet-400 bg-violet-500/20 text-white shadow-[0_0_18px_rgba(124,58,237,0.45)]"
                       : isElim
-                      ? "border-white/[0.05] bg-[#0b0d14] text-slate-600 opacity-45"
-                      : "border-white/[0.14] bg-[#141828] text-slate-200"
+                      ? "border-[#ededed]/[0.06] bg-[#141415] text-[#85858b] opacity-45"
+                      : "border-violet-500/40 bg-[#19191b] text-[#ededed]"
                   }`}
                 >
                   {v}
                 </div>
-                <div className="h-4 font-mono text-[10px] font-bold">
+                <div className="h-4 font-mono text-xs font-medium tabular-nums">
                   {isFound ? (
                     <span className="text-emerald-400">FOUND</span>
                   ) : isMid ? (
@@ -217,7 +217,7 @@ function SearchVisualizer({ mode }: { mode: "linear" | "binary" }) {
                   ) : isHi ? (
                     <span className="text-sky-300">HIGH</span>
                   ) : (
-                    <span className="text-slate-500">[{i}]</span>
+                    <span className="text-[#85858b]">[{i}]</span>
                   )}
                 </div>
               </div>
@@ -242,16 +242,16 @@ function SearchVisualizer({ mode }: { mode: "linear" | "binary" }) {
         <>
           <InspectorBlock
             highlight
-            title="Custom Array & Target"
-            description={mode === "binary" ? "Array auto-sorts for Binary Search." : "Works on sorted or unsorted arrays."}
+            title="Custom array & target"
+            description={mode === "binary" ? "Array auto-sorts for binary search" : "Works on sorted or unsorted arrays"}
           >
             <div className="space-y-2">
               <div>
-                <label className="mb-1 block text-[11px] text-slate-400">Array Values</label>
+                <label className="mb-1 block text-xs text-[#a1a1a6]">Array values</label>
                 <StudioInput value={arrInput} onChange={(e) => setArrInput(e.target.value)} />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] text-slate-400">Target Value</label>
+                <label className="mb-1 block text-xs text-[#a1a1a6]">Target value</label>
                 <StudioInput type="number" value={targetInput} onChange={(e) => setTargetInput(e.target.value)} />
               </div>
               <StudioBtn variant="primary" className="w-full" onClick={applyCustom}>
@@ -293,8 +293,8 @@ function SearchVisualizer({ mode }: { mode: "linear" | "binary" }) {
           }
           keyPoints={
             mode === "linear"
-              ? ["Works on unsorted data & linked lists.", "Worst case checks all n elements."]
-              : ["Requires sorted random-access array.", "Even 1 billion elements takes at most 30 comparisons!"]
+              ? ["Works on unsorted data and linked lists.", "Worst case checks all n elements."]
+              : ["Requires a sorted random-access array.", "Even 1 billion elements takes at most 30 comparisons."]
           }
           complexities={[
             mode === "linear"
@@ -344,7 +344,7 @@ function HashingVisualizer() {
   const [keys, setKeys] = useState<number[]>([23, 14, 9, 30, 16, 37]);
   const [bulkInput, setBulkInput] = useState("23, 14, 9, 30, 16, 37");
   const [singleKey, setSingleKey] = useState("44");
-  const [status, setStatus] = useState("Visualizing collisions & resolution live. Try switching strategies above!");
+  const [status, setStatus] = useState("Inspect collisions and probing strategies live");
 
   const { buckets, slots, probeLogs, rehashOccurred, finalSize } = useMemo(() => {
     let curSize = tableSize;
@@ -506,36 +506,36 @@ function HashingVisualizer() {
         }
         statusText={
           rehashOccurred
-            ? `Load factor > 0.70! Auto-rehashed table from size ${tableSize} to prime size ${finalSize}.`
+            ? `Load factor > 0.70 — auto-rehashed table from size ${tableSize} to prime size ${finalSize}`
             : status
         }
         stage={
           mode === "extendible" ? (
             <div className="space-y-4 py-2">
-              <div className="text-center font-mono text-xs text-slate-400">
-                Global Depth = <span className="font-bold text-violet-300">{extendible.globalDepth}</span> · Bucket Capacity = 2
+              <div className="text-center font-mono text-xs text-[#a1a1a6]">
+                Global Depth = <span className="font-medium text-amber-400">{extendible.globalDepth}</span> · Bucket Capacity = 2
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-1.5">
-                  <div className="text-xs font-semibold text-slate-300">Directory (LSB suffix bits)</div>
+                  <div className="text-xs font-medium text-[#a1a1a6]">Directory (LSB suffix bits)</div>
                   {extendible.dir.map((b, idx) => (
-                    <div key={idx} className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-[#121625] px-3 py-1.5 font-mono text-xs">
-                      <span className="text-sky-300">
+                    <div key={idx} className="flex items-center justify-between rounded-lg border border-[#ededed]/[0.08] bg-[#19191b] px-3 py-1.5 font-mono text-xs">
+                      <span className="text-[#60a5fa]">
                         {idx.toString(2).padStart(extendible.globalDepth, "0")}
                       </span>
-                      <span className="text-slate-500">-&gt;</span>
-                      <span className="font-bold text-violet-300">{b.id}</span>
+                      <span className="text-[#85858b]">-&gt;</span>
+                      <span className="font-medium text-amber-300">{b.id}</span>
                     </div>
                   ))}
                 </div>
                 <div className="space-y-1.5">
-                  <div className="text-xs font-semibold text-slate-300">Data Buckets</div>
+                  <div className="text-xs font-medium text-[#a1a1a6]">Data Buckets</div>
                   {extendible.uniqueBuckets.map((b) => (
-                    <div key={b.id} className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-[#101c1a] px-3 py-1.5 font-mono text-xs">
-                      <span className="font-bold text-emerald-300">
+                    <div key={b.id} className="flex items-center justify-between rounded-lg border border-[#4cc38a]/35 bg-[#4cc38a]/10 px-3 py-1.5 font-mono text-xs">
+                      <span className="font-medium text-[#4cc38a]">
                         {b.id} (LD={b.localDepth})
                       </span>
-                      <span className="text-white">[{b.items.join(", ") || "empty"}]</span>
+                      <span className="text-[#ededed]">[{b.items.join(", ") || "empty"}]</span>
                     </div>
                   ))}
                 </div>
@@ -545,18 +545,18 @@ function HashingVisualizer() {
             <div className="space-y-3 py-2">
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid-cols-7">
                 {buckets.map((bucket, idx) => (
-                  <div key={idx} className="overflow-hidden rounded-xl border border-white/[0.09] bg-[#121625]">
-                    <div className="border-b border-white/[0.06] bg-[#171c2f] py-1 text-center font-mono text-[11px] font-bold text-slate-400">
+                  <div key={idx} className="overflow-hidden rounded-xl border border-[#ededed]/[0.08] bg-[#19191b]">
+                    <div className="border-b border-[#ededed]/[0.06] bg-[#232325] py-1 text-center font-mono text-xs font-medium text-[#a1a1a6]">
                       [{idx}]
                     </div>
-                    <div className="flex min-h-[58px] flex-col gap-1 p-1.5">
+                    <div className="flex min-h-[60px] flex-col gap-1 p-1.5">
                       {bucket.map((k) => (
                         <div
                           key={k}
-                          className={`rounded px-2 py-0.5 text-center font-mono text-xs font-bold ${
+                          className={`rounded px-2 py-0.5 text-center font-mono text-xs font-medium tabular-nums ${
                             bucket.length > 1
-                              ? "border border-rose-500/40 bg-rose-500/15 text-rose-200"
-                              : "border border-violet-500/40 bg-violet-500/15 text-violet-200"
+                              ? "border border-[#e5484d]/40 bg-[#e5484d]/15 text-[#fca5a5]"
+                              : "border border-amber-500/40 bg-amber-500/12 text-amber-200"
                           }`}
                         >
                           {k}
@@ -566,7 +566,7 @@ function HashingVisualizer() {
                   </div>
                 ))}
               </div>
-              <div className="max-h-24 overflow-y-auto rounded-lg border border-white/[0.06] bg-[#0b0e17] p-2 font-mono text-[11px] text-slate-400">
+              <div className="max-h-24 overflow-y-auto rounded-lg border border-[#ededed]/[0.06] bg-[#141415] p-2.5 font-mono text-xs text-[#a1a1a6]">
                 {probeLogs.map((l, i) => <div key={i}>{l}</div>)}
               </div>
             </div>
@@ -578,18 +578,18 @@ function HashingVisualizer() {
                     key={idx}
                     className={`rounded-xl border p-2 text-center font-mono ${
                       val !== null
-                        ? "border-violet-500/50 bg-violet-500/15"
-                        : "border-white/[0.07] bg-[#111524]"
+                        ? "border-violet-500/55 bg-violet-500/12 shadow-[0_0_12px_rgba(139,92,246,0.2)]"
+                        : "border-[#ededed]/[0.07] bg-[#19191b]"
                     }`}
                   >
-                    <div className="text-[10px] text-slate-500">[{idx}]</div>
-                    <div className={`mt-1 text-sm font-bold ${val !== null ? "text-white" : "text-slate-600"}`}>
+                    <div className="text-xs text-[#85858b]">[{idx}]</div>
+                    <div className={`mt-1 text-sm font-medium tabular-nums ${val !== null ? "text-[#ededed]" : "text-[#85858b]/60"}`}>
                       {val !== null ? val : "—"}
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="max-h-24 overflow-y-auto rounded-lg border border-white/[0.06] bg-[#0b0e17] p-2 font-mono text-[11px] text-slate-400">
+              <div className="max-h-24 overflow-y-auto rounded-lg border border-[#ededed]/[0.06] bg-[#141415] p-2.5 font-mono text-xs text-[#a1a1a6]">
                 {probeLogs.map((l, i) => <div key={i}>{l}</div>)}
               </div>
             </div>
@@ -631,8 +631,8 @@ function HashingVisualizer() {
                     const h = computeHash(k, finalSize, hashFn);
                     setStatus(
                       keys.includes(k)
-                        ? `Found ${k}! Primary hash h(${k}) = ${h}.`
-                        : `${k} not in table (primary hash h=${h}).`
+                        ? `Found ${k} — primary hash h(${k}) = ${h}`
+                        : `${k} not in table (primary hash h=${h})`
                     );
                   }}
                 >
@@ -644,7 +644,7 @@ function HashingVisualizer() {
             </InspectorBlock>
 
             {mode !== "extendible" && (
-              <InspectorBlock title="Hash Function & Table Size">
+              <InspectorBlock title="Hash function & table size">
                 <div className="space-y-2">
                   <StudioSelect value={hashFn} onChange={(e) => setHashFn(e.target.value as HashFn)}>
                     <option value="division">Division: k mod m</option>
@@ -652,7 +652,7 @@ function HashingVisualizer() {
                     <option value="multiplication">Multiplication: floor(m*(kA mod 1))</option>
                   </StudioSelect>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-slate-400">Initial Size (m)</span>
+                    <span className="text-xs text-[#a1a1a6]">Initial size (m)</span>
                     <StudioSelect
                       className="w-24"
                       value={tableSize}

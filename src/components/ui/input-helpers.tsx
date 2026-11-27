@@ -15,17 +15,20 @@ export function InspectorBlock({
   return (
     <div
       className={cn(
-        "rounded-xl border p-3.5 transition-colors",
+        "rounded-xl border p-4 transition-colors duration-150",
         highlight
-          ? "border-violet-500/35 bg-violet-500/[0.06]"
-          : "border-white/[0.07] bg-[#141826]"
+          ? "border-amber-500/30 bg-[#141415]"
+          : "border-[#ededed]/[0.07] bg-[#141415]"
       )}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-slate-200">{title}</span>
+        <span className="inline-flex items-center gap-2 text-xs font-medium text-[#ededed]">
+          {highlight && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />}
+          {title}
+        </span>
       </div>
       {description && (
-        <p className="mb-2.5 text-[11px] leading-relaxed text-slate-400">{description}</p>
+        <p className="mb-3 text-xs leading-relaxed text-[#85858b]">{description}</p>
       )}
       {children}
     </div>
@@ -51,10 +54,10 @@ export function PresetRow({
             type="button"
             onClick={() => onSelect(p.id)}
             className={cn(
-              "rounded-md border px-2.5 py-1 text-xs font-medium transition cursor-pointer",
+              "rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors duration-150 cursor-pointer",
               active
-                ? "border-violet-400/60 bg-violet-500/20 text-violet-200"
-                : "border-white/[0.09] bg-[#181d2e] text-slate-300 hover:border-white/[0.2] hover:text-white"
+                ? "border-amber-500/50 bg-amber-500/12 text-amber-300"
+                : "border-[#ededed]/[0.08] bg-[#232325] text-[#a1a1a6] hover:border-[#ededed]/[0.18] hover:text-[#ededed]"
             )}
           >
             {p.label}
@@ -73,7 +76,7 @@ export function StudioInput({
     <input
       {...props}
       className={cn(
-        "w-full rounded-lg border border-white/[0.1] bg-[#0b0d14] px-3 py-2 font-mono text-xs text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20",
+        "w-full rounded-lg border border-[#ededed]/[0.1] bg-[#0f0f10] px-3 py-2 font-mono text-xs text-[#ededed] placeholder:text-[#85858b] outline-none transition-colors duration-150 focus:border-amber-500/70",
         className
       )}
     />
@@ -88,7 +91,7 @@ export function StudioTextarea({
     <textarea
       {...props}
       className={cn(
-        "w-full rounded-lg border border-white/[0.1] bg-[#0b0d14] px-3 py-2 font-mono text-xs text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20",
+        "w-full rounded-lg border border-[#ededed]/[0.1] bg-[#0f0f10] px-3 py-2 font-mono text-xs text-[#ededed] placeholder:text-[#85858b] outline-none transition-colors duration-150 focus:border-amber-500/70",
         className
       )}
     />
@@ -104,7 +107,7 @@ export function StudioSelect({
     <select
       {...props}
       className={cn(
-        "w-full rounded-lg border border-white/[0.1] bg-[#0b0d14] px-3 py-2 text-xs font-medium text-slate-100 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 cursor-pointer",
+        "w-full rounded-lg border border-[#ededed]/[0.1] bg-[#0f0f10] px-3 py-2 text-xs font-medium text-[#ededed] outline-none transition-colors duration-150 focus:border-amber-500/70 cursor-pointer",
         className
       )}
     >
@@ -125,16 +128,16 @@ export function StudioBtn({
 }) {
   const variants = {
     primary:
-      "border-violet-500/70 bg-violet-600 text-white hover:bg-violet-500 shadow-[0_0_16px_-4px_rgba(124,58,237,0.65)]",
+      "border-transparent bg-[#ededed] text-[#141415] hover:bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]",
     secondary:
-      "border-white/[0.1] bg-[#181d2e] text-slate-200 hover:border-white/[0.22] hover:bg-[#1f253a]",
+      "border-[#ededed]/[0.1] bg-[#232325] text-[#ededed] hover:border-[#ededed]/[0.2] hover:bg-[#2b2b2e]",
     danger:
-      "border-rose-500/35 bg-rose-500/15 text-rose-300 hover:bg-rose-500/25",
+      "border-[#e5484d]/35 bg-[#e5484d]/12 text-[#f87171] hover:bg-[#e5484d]/20",
     emerald:
-      "border-emerald-500/35 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25",
+      "border-[#4cc38a]/35 bg-[#4cc38a]/12 text-[#4cc38a] hover:bg-[#4cc38a]/20",
   };
   const sizes = {
-    xs: "px-2.5 py-1 text-[11px]",
+    xs: "px-2.5 py-1 text-xs",
     sm: "px-3 py-1.5 text-xs",
   };
 
@@ -143,7 +146,7 @@ export function StudioBtn({
       type="button"
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-lg border font-medium transition active:scale-[0.98] disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer",
+        "inline-flex items-center justify-center gap-1.5 rounded-lg border font-medium transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer",
         variants[variant],
         sizes[size],
         className
