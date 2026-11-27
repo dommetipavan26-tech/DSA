@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
 import {
+  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   Code2,
@@ -49,7 +50,7 @@ export function MorphingPillTabs<T extends string>({
             onClick={() => onChange(opt.id)}
             className={cn(
               "relative rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-150 cursor-pointer",
-              active ? "text-[#ededed]" : "text-[#85858b] hover:text-[#ededed]"
+              active ? "text-[#ededed]" : "text-[#93939a] hover:text-[#ededed]"
             )}
           >
             {active && (
@@ -110,7 +111,7 @@ export function PlaybackDock({
           <button
             type="button"
             onClick={onReset}
-            title="Reset"
+            title="Reset (R)"
             aria-label="Reset"
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ededed]/[0.1] bg-[#232325] text-[#a1a1a6] transition-colors duration-150 hover:border-[#ededed]/[0.2] hover:text-[#ededed] active:scale-[0.98] cursor-pointer"
           >
@@ -120,7 +121,7 @@ export function PlaybackDock({
             type="button"
             onClick={onStepBack}
             disabled={!canStepBack}
-            title="Step Back"
+            title="Step Back (Left Arrow)"
             aria-label="Step Back"
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ededed]/[0.1] bg-[#232325] text-[#a1a1a6] transition-colors duration-150 hover:border-[#ededed]/[0.2] hover:text-[#ededed] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
@@ -129,6 +130,7 @@ export function PlaybackDock({
           <button
             type="button"
             onClick={onTogglePlay}
+            title="Play / Pause (Space)"
             className="inline-flex h-9 min-w-24 items-center justify-center gap-1.5 rounded-lg bg-[#f59e0b] px-4 text-sm font-medium text-[#141415] shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[#fbbf24] active:scale-[0.98] cursor-pointer"
           >
             {isPlaying ? (
@@ -147,7 +149,7 @@ export function PlaybackDock({
             type="button"
             onClick={onStepForward}
             disabled={!canStepForward}
-            title="Step Forward"
+            title="Step Forward (Right Arrow)"
             aria-label="Step Forward"
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ededed]/[0.1] bg-[#232325] text-[#a1a1a6] transition-colors duration-150 hover:border-[#ededed]/[0.2] hover:text-[#ededed] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
@@ -155,18 +157,31 @@ export function PlaybackDock({
           </button>
         </div>
 
-        <div className="flex items-center gap-3 text-xs font-medium text-[#a1a1a6]">
-          <span>Speed</span>
-          <input
-            type="range"
-            min={1}
-            max={10}
-            value={speed}
-            onChange={(e) => onSpeedChange(Number(e.target.value))}
-            aria-label="Playback speed"
-            className="h-1.5 w-28 cursor-pointer accent-amber-500"
-          />
-          <span className="w-7 text-right font-mono tabular-nums text-[#ededed]">{speed}x</span>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="hidden items-center gap-1.5 text-[11px] text-[#93939a] sm:flex">
+            <kbd className="rounded border border-[#ededed]/[0.1] bg-[#141415] px-1.5 py-0.5 font-mono">
+              Space
+            </kbd>
+            <kbd className="rounded border border-[#ededed]/[0.1] bg-[#141415] px-1.5 py-0.5 font-mono">
+              ←/→
+            </kbd>
+            <kbd className="rounded border border-[#ededed]/[0.1] bg-[#141415] px-1.5 py-0.5 font-mono">
+              R
+            </kbd>
+          </div>
+          <div className="flex items-center gap-3 text-xs font-medium text-[#a1a1a6]">
+            <span>Speed</span>
+            <input
+              type="range"
+              min={1}
+              max={10}
+              value={speed}
+              onChange={(e) => onSpeedChange(Number(e.target.value))}
+              aria-label="Playback speed"
+              className="h-1.5 w-28 cursor-pointer accent-amber-500"
+            />
+            <span className="w-7 text-right font-mono tabular-nums text-[#ededed]">{speed}x</span>
+          </div>
         </div>
       </div>
 
@@ -188,6 +203,8 @@ export function VisualizerWorkspace({
   step,
   totalSteps,
   statusText,
+  statusTone = "default",
+  notice,
   badge,
   isPlaying,
   stage,
@@ -198,6 +215,8 @@ export function VisualizerWorkspace({
   step?: number;
   totalSteps?: number;
   statusText: string;
+  statusTone?: "default" | "error" | "success";
+  notice?: string;
   badge: string;
   isPlaying?: boolean;
   stage: React.ReactNode;
@@ -214,11 +233,11 @@ export function VisualizerWorkspace({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1 space-y-1">
               {typeof step === "number" && typeof totalSteps === "number" && (
-                <div className="flex items-center gap-1.5 text-xs text-[#85858b]">
+                <div className="flex items-center gap-1.5 text-xs text-[#93939a]">
                   <span
                     className={cn(
                       "h-1.5 w-1.5 rounded-full transition-colors duration-150",
-                      isPlaying ? "bg-amber-500" : "bg-[#85858b]/60"
+                      isPlaying ? "bg-amber-500" : "bg-[#93939a]/60"
                     )}
                   />
                   <span>Step</span>
@@ -229,7 +248,16 @@ export function VisualizerWorkspace({
                   <span className="font-mono tabular-nums text-[#a1a1a6]">{totalSteps}</span>
                 </div>
               )}
-              <div className="min-h-6 text-sm font-medium leading-6 text-[#ededed]">
+              <div
+                className={cn(
+                  "min-h-6 text-sm font-medium leading-6",
+                  statusTone === "error"
+                    ? "text-[#f87171]"
+                    : statusTone === "success"
+                    ? "text-[#4cc38a]"
+                    : "text-[#ededed]"
+                )}
+              >
                 {statusText}
               </div>
             </div>
@@ -238,6 +266,13 @@ export function VisualizerWorkspace({
               {badge}
             </span>
           </div>
+
+          {notice && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" strokeWidth={1.75} />
+              <span>{notice}</span>
+            </div>
+          )}
 
           {/* Inner Stage — fills available vertical space cleanly without leaving dead gap */}
           <div className="flex min-h-[320px] min-w-0 flex-1 flex-col justify-center overflow-hidden rounded-xl border border-[#ededed]/[0.07] bg-[#0f0f10] p-3 sm:p-4">
@@ -252,7 +287,7 @@ export function VisualizerWorkspace({
         <div className="flex flex-col gap-4 rounded-2xl border border-[#ededed]/[0.08] bg-[#19191b] p-5">
           <div className="flex items-center justify-between border-b border-[#ededed]/[0.07] pb-3">
             <span className="inline-flex items-center gap-2 text-sm font-medium text-[#ededed]">
-              <SlidersHorizontal className="h-4 w-4 text-[#85858b]" strokeWidth={1.5} />
+              <SlidersHorizontal className="h-4 w-4 text-[#93939a]" strokeWidth={1.5} />
               Input &amp; controls
             </span>
           </div>
@@ -286,7 +321,7 @@ export function ConceptNotesGrid({
         <ul className="mt-4 space-y-2 text-xs leading-relaxed text-[#a1a1a6]">
           {keyPoints.map((pt, i) => (
             <li key={i} className="flex items-start gap-2.5">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#85858b]" />
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#93939a]" />
               <span>{pt}</span>
             </li>
           ))}
@@ -294,26 +329,30 @@ export function ConceptNotesGrid({
       </div>
 
       <div className="flex flex-col justify-between rounded-2xl border border-[#ededed]/[0.08] bg-[#19191b] p-5">
-        {complexities && complexities.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-medium text-[#ededed]">Time &amp; space complexity</h3>
-              {javaCode && (
-                <button
-                  type="button"
-                  onClick={() => setShowCode((v) => !v)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#ededed]/[0.1] bg-[#232325] px-2.5 py-1 text-xs font-medium text-[#a1a1a6] transition-colors duration-150 hover:border-[#ededed]/[0.2] hover:text-[#ededed] cursor-pointer"
-                >
-                  <Code2 className="h-4 w-4 text-[#85858b]" strokeWidth={1.5} />
-                  {showCode ? "Hide Java code" : "View Java code"}
-                </button>
-              )}
-            </div>
+        <div>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-medium text-[#ededed]">
+              {complexities && complexities.length > 0
+                ? "Time & space complexity"
+                : "Reference implementation"}
+            </h3>
+            {javaCode && (
+              <button
+                type="button"
+                onClick={() => setShowCode((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#ededed]/[0.1] bg-[#232325] px-2.5 py-1 text-xs font-medium text-[#a1a1a6] transition-colors duration-150 hover:border-[#ededed]/[0.2] hover:text-[#ededed] cursor-pointer"
+              >
+                <Code2 className="h-4 w-4 text-[#93939a]" strokeWidth={1.5} />
+                {showCode ? "Hide Java code" : "View Java code"}
+              </button>
+            )}
+          </div>
 
+          {complexities && complexities.length > 0 && (
             <div className="mt-3 overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-[#ededed]/[0.08] text-xs font-medium text-[#85858b]">
+                  <tr className="border-b border-[#ededed]/[0.08] text-xs font-medium text-[#93939a]">
                     <th className="py-2 pr-3 font-medium">Operation</th>
                     <th className="py-2 pr-3 font-medium">Best</th>
                     <th className="py-2 pr-3 font-medium">Average</th>
@@ -334,8 +373,14 @@ export function ConceptNotesGrid({
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+
+          {(!complexities || complexities.length === 0) && javaCode && !showCode && (
+            <p className="mt-3 text-xs leading-relaxed text-[#93939a]">
+              Click &ldquo;View Java code&rdquo; above to inspect the reference implementation for this structure.
+            </p>
+          )}
+        </div>
 
         {showCode && javaCode && (
           <pre className="mt-4 overflow-x-auto rounded-lg border border-[#ededed]/[0.08] bg-[#0f0f10] p-4 font-mono text-xs leading-relaxed text-[#ededed]">

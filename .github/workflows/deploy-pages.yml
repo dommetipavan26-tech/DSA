@@ -33,6 +33,8 @@ jobs:
         run: npm ci
       - name: Typecheck and lint
         run: npm run check
+      - name: Run unit tests
+        run: npm test
       - name: Build self-contained site
         run: npm run build
 
