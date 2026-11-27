@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ConceptNotesGrid,
   MorphingPillTabs,
@@ -12,6 +12,8 @@ import {
   StudioSelect,
   StudioTextarea,
 } from "../components/ui/input-helpers";
+import { usePlayback } from "../hooks/usePlayback";
+import { parseNumberList } from "../lib/parsers";
 import type { TopicId } from "../data/syllabus";
 
 type SortAlgoId =
@@ -30,7 +32,6 @@ interface SortStep {
   msg: string;
 }
 
-/* Merge Sort Divide-and-Conquer Tree Node matching Reference Image 1 */
 interface MergeTreeNode {
   id: string;
   depth: number;
@@ -48,23 +49,25 @@ interface MergeTreeStep {
 }
 
 function buildMergeTreeData(input: number[]) {
-  const arr = input.slice(0, 8);
+  const arr = input.slice(0, 12);
   const nodes: MergeTreeNode[] = [];
   const steps: MergeTreeStep[] = [];
   const initValues: Record<string, (number | null)[]> = {};
   const initStates: Record<string, "pending" | "active" | "done"> = {};
   let uid = 0;
 
-  function buildDivide(
+  const divideToMerge = new Map<string, string>();
+
+  function buildPaired(
     lo: number,
     hi: number,
     depth: number,
-    minX: number,
-    maxX: number,
     parentId?: string
   ): { leafOrMergedId: string; maxDepth: number; sortedSlice: number[] } {
     const id = `d-${uid++}`;
     const slice = arr.slice(lo, hi + 1);
+    const center = (lo + hi + 1) / (2 * arr.length);
+    const x = 0.04 + center * 0.92;
     initValues[id] = slice;
     initStates[id] = "pending";
 
@@ -74,7 +77,7 @@ function buildMergeTreeData(input: number[]) {
         depth,
         vals: slice,
         kind: "leaf",
-        x: (minX + maxX) / 2,
+        x,
         parentIds: parentId ? [parentId] : [],
         edgeLabel: "divide",
       });
@@ -86,16 +89,18 @@ function buildMergeTreeData(input: number[]) {
       depth,
       vals: slice,
       kind: "divide",
-      x: (minX + maxX) / 2,
+      x,
       parentIds: parentId ? [parentId] : [],
       edgeLabel: "divide",
     });
 
     const mid = Math.floor((lo + hi) / 2);
-    const left = buildDivide(lo, mid, depth + 1, minX, (minX + maxX) / 2, id);
-    const right = buildDivide(mid + 1, hi, depth + 1, (minX + maxX) / 2, maxX, id);
+    const left = buildPaired(lo, mid, depth + 1, id);
+    const right = buildPaired(mid + 1, hi, depth + 1, id);
 
     const mergeId = `m-${uid++}`;
+    divideToMerge.set(id, mergeId);
+
     const merged: number[] = [];
     let i = 0;
     let j = 0;
@@ -114,7 +119,7 @@ function buildMergeTreeData(input: number[]) {
       depth: mergeDepth,
       vals: merged,
       kind: "merge",
-      x: (minX + maxX) / 2,
+      x,
       parentIds: [left.leafOrMergedId, right.leafOrMergedId],
       edgeLabel: "merge",
     });
@@ -122,17 +127,11 @@ function buildMergeTreeData(input: number[]) {
     return { leafOrMergedId: mergeId, maxDepth: mergeDepth, sortedSlice: merged };
   }
 
-  buildDivide(0, arr.length - 1, 0, 0.05, 0.95);
+  if (arr.length > 0) {
+    buildPaired(0, arr.length - 1, 0);
+  }
 
-  // Normalize depths so merge mirror is clean and symmetric
-  const divideMax = Math.max(...nodes.filter((n) => n.kind !== "merge").map((n) => n.depth));
-  nodes.forEach((n) => {
-    if (n.kind === "merge") {
-      // keep bottom-up symmetry
-      n.depth = divideMax + (divideMax - (nodes.find((p) => p.id === n.parentIds[0])?.depth ?? divideMax)) + 1;
-    }
-  });
-  // Re-normalize cleanly by topological level
+  const divideMax = Math.max(0, ...nodes.filter((n) => n.kind !== "merge").map((n) => n.depth));
   const levelMap: Record<string, number> = {};
   nodes.forEach((n) => {
     if (n.kind !== "merge") levelMap[n.id] = n.depth;
@@ -145,13 +144,12 @@ function buildMergeTreeData(input: number[]) {
       n.depth = levelMap[n.id];
     });
 
-  // Record step-by-step animation matching Reference Image 1
   const curStates = { ...initStates };
   const curValues = Object.fromEntries(Object.entries(initValues).map(([k, v]) => [k, [...v]]));
   steps.push({
     nodeStates: { ...curStates },
     nodeValues: Object.fromEntries(Object.entries(curValues).map(([k, v]) => [k, [...v]])),
-    msg: "Initial array ready. Press Play or Step to start divide-and-conquer.",
+    msg: `Initial array (${arr.length} values) ready. Press Play or Step to start divide-and-conquer.`,
   });
 
   function animateNode(divideNode: MergeTreeNode | undefined) {
@@ -174,20 +172,8 @@ function buildMergeTreeData(input: number[]) {
     const children = nodes.filter((n) => n.kind !== "merge" && n.parentIds.includes(divideNode.id));
     children.forEach((c) => animateNode(c));
 
-    // Find corresponding merge node whose parentIds are the outputs of these children
-    const mergeNode = nodes.find(
-      (n) =>
-        n.kind === "merge" &&
-        children.every((c) => {
-          // either c itself is a leaf parent of n, or c's sibling merge node is
-          if (n.parentIds.includes(c.id)) return true;
-          const grandChildren = nodes.filter((gc) => gc.parentIds.includes(c.id));
-          return grandChildren.length > 0;
-        }) &&
-        Math.abs(n.x - divideNode.x) < 0.001 &&
-        n.vals.length === divideNode.vals.length
-    );
-
+    const mergeId = divideToMerge.get(divideNode.id);
+    const mergeNode = mergeId ? nodes.find((n) => n.id === mergeId) : undefined;
     if (mergeNode) {
       curStates[mergeNode.id] = "active";
       curValues[mergeNode.id] = mergeNode.vals.map(() => null);
@@ -196,7 +182,7 @@ function buildMergeTreeData(input: number[]) {
         steps.push({
           nodeStates: { ...curStates },
           nodeValues: Object.fromEntries(Object.entries(curValues).map(([k2, v2]) => [k2, [...v2]])),
-          msg: `Place ${mergeNode.vals[k]} at position ${k}.`,
+          msg: `Place ${mergeNode.vals[k]} into merged slot ${k}.`,
         });
       }
       curStates[mergeNode.id] = "done";
@@ -217,7 +203,8 @@ function generateSortSteps(
   input: number[],
   algo: SortAlgoId,
   pivotMode: "last" | "first" | "middle" | "random",
-  heapType: "max" | "min"
+  heapType: "max" | "min",
+  randomSeed: number
 ): SortStep[] {
   const a = [...input];
   const n = a.length;
@@ -230,14 +217,23 @@ function generateSortSteps(
     },
   ];
 
+  // Seeded PRNG for genuine but deterministic-within-run random pivot selection
+  let prng = (randomSeed >>> 0) || 1337;
+  const nextRand = () => {
+    prng = (prng * 1664525 + 1013904223) >>> 0;
+    return prng;
+  };
+
   if (algo === "selection-sort") {
     for (let i = 0; i < n; i++) {
       let minIdx = i;
       for (let j = i + 1; j < n; j++) {
         steps.push({
           arr: [...a],
-          states: a.map((_, k) => (k < i ? "sorted" : k === minIdx ? "active" : k === j ? "comparing" : "unsorted")),
-          msg: `Pass ${i + 1}: comparing arr[${j}]=${a[j]} with current min arr[${minIdx}]=${a[minIdx]}.`,
+          states: a.map((_, k) =>
+            k < i ? "sorted" : k === minIdx ? "active" : k === j ? "comparing" : "unsorted"
+          ),
+          msg: `Pass ${i + 1}: compare arr[${j}]=${a[j]} with current min arr[${minIdx}]=${a[minIdx]}.`,
         });
         if (a[j] < a[minIdx]) minIdx = j;
       }
@@ -262,23 +258,30 @@ function generateSortSteps(
       steps.push({
         arr: [...a],
         states: a.map((_, k) => (k < i ? "sorted" : k === i ? "active" : "unsorted")),
-        msg: `Pick key = ${key} at index ${i} to insert into sorted prefix.`,
+        msg: `Pick key = ${key} at index ${i} to insert into sorted prefix [0..${i - 1}].`,
       });
       while (j >= 0 && a[j] > key) {
         steps.push({
           arr: [...a],
-          states: a.map((_, k) => (k === j || k === j + 1 ? "comparing" : k <= i ? "sorted" : "unsorted")),
-          msg: `${a[j]} > ${key}, shift ${a[j]} right to index ${j + 1}.`,
+          states: a.map((_, k) =>
+            k === j || k === j + 1 ? "comparing" : k <= i ? "sorted" : "unsorted"
+          ),
+          msg: `${a[j]} > ${key} — swap ${key} left past ${a[j]} (index ${j + 1} -> ${j}).`,
         });
         a[j + 1] = a[j];
         a[j] = key;
         steps.push({
           arr: [...a],
           states: a.map((_, k) => (k === j ? "swap" : k <= i ? "sorted" : "unsorted")),
-          msg: `Moved ${key} left to index ${j}.`,
+          msg: `Shifted ${a[j + 1]} right; key ${key} is now at index ${j}.`,
         });
         j--;
       }
+      steps.push({
+        arr: [...a],
+        states: a.map((_, k) => (k <= i ? "sorted" : "unsorted")),
+        msg: `Key ${key} settled at index ${j + 1}; prefix [0..${i}] is sorted.`,
+      });
     }
     steps.push({
       arr: [...a],
@@ -299,27 +302,39 @@ function generateSortSteps(
           : pivotMode === "middle"
           ? Math.floor((lo + hi) / 2)
           : pivotMode === "random"
-          ? lo + ((lo * 7 + hi * 3) % (hi - lo + 1))
+          ? lo + (nextRand() % (hi - lo + 1))
           : hi;
       if (pIdx !== hi) {
         [a[pIdx], a[hi]] = [a[hi], a[pIdx]];
         steps.push({
           arr: [...a],
-          states: a.map((_, k) => (sortedSet.has(k) ? "sorted" : k === hi ? "pivot" : k === pIdx ? "swap" : "unsorted")),
-          msg: `Move chosen ${pivotMode} pivot (${a[hi]}) to end of range [${lo}..${hi}].`,
+          states: a.map((_, k) =>
+            sortedSet.has(k) ? "sorted" : k === hi ? "pivot" : k === pIdx ? "swap" : "unsorted"
+          ),
+          msg: `Move chosen ${pivotMode} pivot (${a[hi]} from [${pIdx}]) to end [${hi}] of [${lo}..${hi}].`,
         });
       }
       const pivot = a[hi];
       let i = lo - 1;
       steps.push({
         arr: [...a],
-        states: a.map((_, k) => (sortedSet.has(k) ? "sorted" : k === hi ? "pivot" : k >= lo && k < hi ? "active" : "unsorted")),
+        states: a.map((_, k) =>
+          sortedSet.has(k)
+            ? "sorted"
+            : k === hi
+            ? "pivot"
+            : k >= lo && k < hi
+            ? "active"
+            : "unsorted"
+        ),
         msg: `Partition [${lo}..${hi}] around pivot = ${pivot}.`,
       });
       for (let j = lo; j < hi; j++) {
         steps.push({
           arr: [...a],
-          states: a.map((_, k) => (sortedSet.has(k) ? "sorted" : k === hi ? "pivot" : k === j ? "comparing" : "unsorted")),
+          states: a.map((_, k) =>
+            sortedSet.has(k) ? "sorted" : k === hi ? "pivot" : k === j ? "comparing" : "unsorted"
+          ),
           msg: `Compare arr[${j}]=${a[j]} with pivot ${pivot}.`,
         });
         if (a[j] <= pivot) {
@@ -328,7 +343,15 @@ function generateSortSteps(
             [a[i], a[j]] = [a[j], a[i]];
             steps.push({
               arr: [...a],
-              states: a.map((_, k) => (sortedSet.has(k) ? "sorted" : k === hi ? "pivot" : k === i || k === j ? "swap" : "unsorted")),
+              states: a.map((_, k) =>
+                sortedSet.has(k)
+                  ? "sorted"
+                  : k === hi
+                  ? "pivot"
+                  : k === i || k === j
+                  ? "swap"
+                  : "unsorted"
+              ),
               msg: `${a[i]} <= ${pivot}: swap index ${i} and ${j}.`,
             });
           }
@@ -363,12 +386,16 @@ function generateSortSteps(
       ms(mid + 1, hi);
       const left = a.slice(lo, mid + 1);
       const right = a.slice(mid + 1, hi + 1);
-      let i = 0, j = 0, k = lo;
+      let i = 0;
+      let j = 0;
+      let k = lo;
       while (i < left.length && j < right.length) {
         a[k] = left[i] <= right[j] ? left[i++] : right[j++];
         steps.push({
           arr: [...a],
-          states: a.map((_, x) => (x === k ? "swap" : x >= lo && x <= hi ? "comparing" : "unsorted")),
+          states: a.map((_, x) =>
+            x === k ? "swap" : x >= lo && x <= hi ? "comparing" : "unsorted"
+          ),
           msg: `Merge: write ${a[k]} into index ${k}.`,
         });
         k++;
@@ -417,7 +444,9 @@ function generateSortSteps(
         steps.push({
           arr: [...a],
           heapSize: size,
-          states: a.map((_, k) => (k >= size ? "sorted" : k === i || k === best ? "swap" : "unsorted")),
+          states: a.map((_, k) =>
+            k >= size ? "sorted" : k === i || k === best ? "swap" : "unsorted"
+          ),
           msg: `Swap parent arr[${i}] and child arr[${best}] to restore ${heapLabel} property.`,
         });
         heapify(size, best);
@@ -461,42 +490,138 @@ const SORT_INFO: Record<
     intuition: string;
     points: string[];
     complexities: { op: string; best: string; avg: string; worst: string; space: string }[];
+    javaCode: string;
   }
 > = {
   "selection-sort": {
     name: "Selection Sort",
     about: "Scans the unsorted slice to find the minimum element and swaps it into place.",
     intuition: "Like organizing test papers by scanning the pile for the lowest score each round.",
-    points: ["Performs at most O(n) swaps — useful when writes are expensive.", "Always makes O(n^2) comparisons regardless of input order.", "Not stable by default."],
-    complexities: [{ op: "Selection Sort", best: "O(n^2)", avg: "O(n^2)", worst: "O(n^2)", space: "O(1)" }],
+    points: [
+      "Performs at most O(n) swaps — useful when writes are expensive.",
+      "Always makes O(n^2) comparisons regardless of input order.",
+      "Not stable by default.",
+    ],
+    complexities: [
+      { op: "Selection Sort", best: "O(n^2)", avg: "O(n^2)", worst: "O(n^2)", space: "O(1)" },
+    ],
+    javaCode: `static void selectionSort(int[] a) {
+  for (int i = 0; i < a.length - 1; i++) {
+    int min = i;
+    for (int j = i + 1; j < a.length; j++)
+      if (a[j] < a[min]) min = j;
+    int tmp = a[i]; a[i] = a[min]; a[min] = tmp;
+  }
+}`,
   },
   "insertion-sort": {
     name: "Insertion Sort",
     about: "Inserts each element into its proper spot within the already-sorted left subarray.",
     intuition: "How most people sort a hand of playing cards one card at a time.",
-    points: ["Adaptive: runs in O(n) on already-sorted or nearly-sorted arrays.", "Stable sort and in-place O(1) memory."],
-    complexities: [{ op: "Insertion Sort", best: "O(n)", avg: "O(n^2)", worst: "O(n^2)", space: "O(1)" }],
+    points: [
+      "Adaptive: runs in O(n) on already-sorted or nearly-sorted arrays.",
+      "Stable sort and in-place O(1) memory.",
+    ],
+    complexities: [
+      { op: "Insertion Sort", best: "O(n)", avg: "O(n^2)", worst: "O(n^2)", space: "O(1)" },
+    ],
+    javaCode: `static void insertionSort(int[] a) {
+  for (int i = 1; i < a.length; i++) {
+    int key = a[i], j = i - 1;
+    while (j >= 0 && a[j] > key) {
+      a[j + 1] = a[j];
+      j--;
+    }
+    a[j + 1] = key;
+  }
+}`,
   },
   "quick-sort": {
     name: "Quick Sort",
-    about: "Partitions around a chosen pivot, then recursively sorts left and right partitions. You can choose which element acts as pivot.",
-    intuition: "Pick a pivot; smaller items move left, larger items move right, then recurse on each half.",
-    points: ["Pivot choice dramatically affects performance on sorted inputs.", "In-place partitioning with O(log n) average recursion stack."],
-    complexities: [{ op: "Quick Sort", best: "O(n log n)", avg: "O(n log n)", worst: "O(n^2)", space: "O(log n)" }],
+    about:
+      "Partitions around a chosen pivot, then recursively sorts left and right partitions. You can choose which element acts as pivot.",
+    intuition:
+      "Pick a pivot; smaller items move left, larger items move right, then recurse on each half.",
+    points: [
+      "Pivot choice dramatically affects performance on sorted inputs.",
+      "In-place partitioning with O(log n) average recursion stack.",
+    ],
+    complexities: [
+      {
+        op: "Quick Sort",
+        best: "O(n log n)",
+        avg: "O(n log n)",
+        worst: "O(n^2)",
+        space: "O(log n)",
+      },
+    ],
+    javaCode: `static void quickSort(int[] a, int lo, int hi) {
+  if (lo >= hi) return;
+  int p = partition(a, lo, hi);
+  quickSort(a, lo, p - 1);
+  quickSort(a, p + 1, hi);
+}
+static int partition(int[] a, int lo, int hi) {
+  int pivot = a[hi], i = lo - 1;
+  for (int j = lo; j < hi; j++)
+    if (a[j] <= pivot) { int t = a[++i]; a[i] = a[j]; a[j] = t; }
+  int t = a[i + 1]; a[i + 1] = a[hi]; a[hi] = t;
+  return i + 1;
+}`,
   },
   "merge-sort": {
     name: "Merge Sort",
-    about: "Divides the array into halves, recursively sorts, then merges sorted halves. Stable O(n log n). The tree view shows divide and merge phases.",
+    about:
+      "Divides the array into halves, recursively sorts, then merges sorted halves. Stable O(n log n). The tree view shows divide and merge phases for all elements.",
     intuition: "Split down to 1-element sorted arrays, then zip pairs together in sorted order.",
-    points: ["Guaranteed O(n log n) worst-case time.", "Stable sort; needs O(n) temporary merge buffer."],
-    complexities: [{ op: "Merge Sort", best: "O(n log n)", avg: "O(n log n)", worst: "O(n log n)", space: "O(n)" }],
+    points: [
+      "Guaranteed O(n log n) worst-case time.",
+      "Stable sort; needs O(n) temporary merge buffer.",
+    ],
+    complexities: [
+      {
+        op: "Merge Sort",
+        best: "O(n log n)",
+        avg: "O(n log n)",
+        worst: "O(n log n)",
+        space: "O(n)",
+      },
+    ],
+    javaCode: `static void mergeSort(int[] a, int lo, int hi) {
+  if (lo >= hi) return;
+  int mid = lo + (hi - lo) / 2;
+  mergeSort(a, lo, mid);
+  mergeSort(a, mid + 1, hi);
+  merge(a, lo, mid, hi);
+}`,
   },
   "heap-sort": {
     name: "Heap Sort",
-    about: "Builds a Binary Heap (Max-Heap for ascending, Min-Heap for descending) and repeatedly extracts the root.",
-    intuition: "Turn the array into a tournament tree so the extreme element always floats to index 0.",
-    points: ["Max-Heap produces ascending order; Min-Heap produces descending order.", "Guaranteed O(n log n) time AND O(1) auxiliary space."],
-    complexities: [{ op: "Heap Sort", best: "O(n log n)", avg: "O(n log n)", worst: "O(n log n)", space: "O(1)" }],
+    about:
+      "Builds a Binary Heap (Max-Heap for ascending, Min-Heap for descending) and repeatedly extracts the root.",
+    intuition:
+      "Turn the array into a tournament tree so the extreme element always floats to index 0.",
+    points: [
+      "Max-Heap produces ascending order; Min-Heap produces descending order.",
+      "Guaranteed O(n log n) time AND O(1) auxiliary space.",
+    ],
+    complexities: [
+      {
+        op: "Heap Sort",
+        best: "O(n log n)",
+        avg: "O(n log n)",
+        worst: "O(n log n)",
+        space: "O(1)",
+      },
+    ],
+    javaCode: `static void heapSort(int[] a) {
+  int n = a.length;
+  for (int i = n / 2 - 1; i >= 0; i--) heapify(a, n, i);
+  for (int end = n - 1; end > 0; end--) {
+    int t = a[0]; a[0] = a[end]; a[end] = t;
+    heapify(a, end, 0);
+  }
+}`,
   },
 };
 
@@ -518,59 +643,56 @@ export function SortingVisualizer({
 
   const [arrText, setArrText] = useState("6, 3, 9, 1, 5, 4, 7, 2");
   const [arr, setArr] = useState<number[]>([6, 3, 9, 1, 5, 4, 7, 2]);
+  const [inputNotice, setInputNotice] = useState<string | undefined>(undefined);
   const [pivotMode, setPivotMode] = useState<"last" | "first" | "middle" | "random">("last");
+  const [randomSeed, setRandomSeed] = useState(42);
   const [heapType, setHeapType] = useState<"max" | "min">("max");
   const [mergeView, setMergeView] = useState<"tree" | "bars">("tree");
-  const [stepIdx, setStepIdx] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(5);
 
   const barSteps = useMemo(
-    () => generateSortSteps(arr, algo, pivotMode, heapType),
-    [arr, algo, pivotMode, heapType]
+    () => generateSortSteps(arr, algo, pivotMode, heapType, randomSeed),
+    [arr, algo, pivotMode, heapType, randomSeed]
   );
   const mergeTreeData = useMemo(() => buildMergeTreeData(arr), [arr]);
 
   const isMergeTree = algo === "merge-sort" && mergeView === "tree";
-  const totalSteps = isMergeTree ? Math.max(0, mergeTreeData.steps.length - 1) : Math.max(0, barSteps.length - 1);
+  const totalSteps = isMergeTree
+    ? Math.max(0, mergeTreeData.steps.length - 1)
+    : Math.max(0, barSteps.length - 1);
 
-  useEffect(() => {
-    setStepIdx(0);
-    setPlaying(false);
-  }, [arr, algo, pivotMode, heapType, mergeView]);
-
-  useEffect(() => {
-    if (!playing) return;
-    const t = setInterval(() => {
-      setStepIdx((p) => {
-        if (p >= totalSteps) {
-          setPlaying(false);
-          return p;
-        }
-        return p + 1;
-      });
-    }, 1050 - speed * 90);
-    return () => clearInterval(t);
-  }, [playing, speed, totalSteps]);
+  const pb = usePlayback({
+    totalSteps,
+    resetKey: `${algo}-${arr.join(",")}-${pivotMode}-${randomSeed}-${heapType}-${mergeView}`,
+    baseDelayMs: 1050,
+    stepDelayMs: 90,
+  });
 
   const applyInput = (raw = arrText) => {
-    const parsed = raw
-      .split(/[,\s]+/)
-      .map(Number)
-      .filter((n) => !Number.isNaN(n) && n >= 0)
-      .slice(0, 12);
-    if (parsed.length >= 2) {
-      setArr(parsed);
-      setArrText(parsed.join(", "));
+    const parsed = parseNumberList(raw, { min: -999, max: 999, maxCount: 12 });
+    if (parsed.values.length < 2) {
+      setInputNotice("Enter at least 2 valid numbers separated by commas or spaces.");
+      return;
     }
+    const notes: string[] = [];
+    if (parsed.truncated > 0) notes.push(`capped to first 12 values (${parsed.truncated} omitted)`);
+    if (parsed.invalidTokens > 0) notes.push(`ignored ${parsed.invalidTokens} non-numeric token(s)`);
+    if (parsed.droppedOutOfRange > 0) notes.push(`ignored values outside [-999, 999]`);
+    setInputNotice(notes.length ? `Input adjusted: ${notes.join("; ")}.` : undefined);
+    setArr(parsed.values);
+    setArrText(parsed.values.join(", "));
   };
 
   const info = SORT_INFO[algo];
-  const curBarStep = barSteps[Math.min(stepIdx, barSteps.length - 1)] ?? barSteps[0];
-  const curMergeStep = mergeTreeData.steps[Math.min(stepIdx, mergeTreeData.steps.length - 1)] ?? mergeTreeData.steps[0];
+  const curBarStep = barSteps[pb.stepIdx] ?? barSteps[0];
+  const curMergeStep = mergeTreeData.steps[pb.stepIdx] ?? mergeTreeData.steps[0];
   const statusMsg = isMergeTree ? curMergeStep.msg : curBarStep.msg;
 
-  const maxBarVal = Math.max(1, ...curBarStep.arr);
+  // Normalize bar heights cleanly even when negative numbers are entered
+  const minVal = Math.min(...curBarStep.arr);
+  const maxVal = Math.max(...curBarStep.arr);
+  const shift = minVal < 0 ? -minVal + 1 : 0;
+  const maxShifted = Math.max(1, maxVal + shift);
+
   const barColors: Record<BarState, string> = {
     unsorted: "bg-[#2e2e34] border-t border-[#ededed]/15",
     active: "bg-[#60a5fa] border-t border-sky-200/35",
@@ -580,8 +702,8 @@ export function SortingVisualizer({
     pivot: "bg-[#ededed] border-t border-white",
   };
 
-  // For Merge Tree SVG layout
   const mergeMaxDepth = Math.max(1, ...mergeTreeData.nodes.map((n) => n.depth));
+  const mergeSvgW = Math.max(740, arr.length * 76);
 
   return (
     <div className="space-y-4">
@@ -599,16 +721,20 @@ export function SortingVisualizer({
       />
 
       <VisualizerWorkspace
-        step={stepIdx}
+        step={pb.stepIdx}
         totalSteps={totalSteps}
         statusText={statusMsg}
+        notice={inputNotice}
         badge={info.name}
-        isPlaying={playing}
+        isPlaying={pb.playing}
         stage={
           isMergeTree ? (
-            /* Divide-and-Conquer Tree Diagram matching Reference Image 1 */
             <div className="overflow-x-auto">
-              <svg viewBox={`0 0 740 ${Math.max(360, (mergeMaxDepth + 1) * 58 + 20)}`} className="w-full min-w-[540px]">
+              <svg
+                viewBox={`0 0 ${mergeSvgW} ${Math.max(360, (mergeMaxDepth + 1) * 58 + 20)}`}
+                className="w-full"
+                style={{ minWidth: `${Math.min(mergeSvgW, 560)}px` }}
+              >
                 <defs>
                   <marker id="m-arr-slate" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
                     <path d="M0,0 L0,6 L6,3 z" fill="#52525b" />
@@ -618,14 +744,13 @@ export function SortingVisualizer({
                   </marker>
                 </defs>
 
-                {/* Edges */}
                 {mergeTreeData.nodes.map((node) =>
                   node.parentIds.map((pid) => {
                     const parent = mergeTreeData.nodes.find((p) => p.id === pid);
                     if (!parent) return null;
-                    const x1 = parent.x * 740;
+                    const x1 = parent.x * mergeSvgW;
                     const y1 = 28 + parent.depth * 56 + 14;
-                    const x2 = node.x * 740;
+                    const x2 = node.x * mergeSvgW;
                     const y2 = 28 + node.depth * 56 - 14;
                     const isActive =
                       curMergeStep.nodeStates[node.id] === "active" ||
@@ -645,7 +770,7 @@ export function SortingVisualizer({
                           x={(x1 + x2) / 2}
                           y={(y1 + y2) / 2}
                           textAnchor="middle"
-                          fill={isActive ? "#f59e0b" : "#85858b"}
+                          fill={isActive ? "#f59e0b" : "#93939a"}
                           fontSize="10"
                         >
                           {node.edgeLabel}
@@ -655,16 +780,19 @@ export function SortingVisualizer({
                   })
                 )}
 
-                {/* Box Nodes */}
                 {mergeTreeData.nodes.map((node) => {
                   const vals = curMergeStep.nodeValues[node.id] ?? node.vals;
                   const state = curMergeStep.nodeStates[node.id] ?? "pending";
-                  const cellW = 26;
+                  const cellW = arr.length > 9 ? 24 : 26;
                   const totalW = vals.length * cellW;
-                  const x0 = node.x * 740 - totalW / 2;
+                  const x0 = node.x * mergeSvgW - totalW / 2;
                   const y0 = 28 + node.depth * 56 - 13;
                   const stroke =
-                    state === "active" ? "#f59e0b" : state === "done" ? "#4cc38a" : "rgba(237,237,237,0.2)";
+                    state === "active"
+                      ? "#f59e0b"
+                      : state === "done"
+                      ? "#4cc38a"
+                      : "rgba(237,237,237,0.2)";
                   const fill =
                     state === "active" ? "#261c0b" : state === "done" ? "#11281d" : "#19191b";
 
@@ -697,7 +825,7 @@ export function SortingVisualizer({
                             y={y0 + 13}
                             textAnchor="middle"
                             dominantBaseline="central"
-                            fill={v === null ? "#85858b" : "#ededed"}
+                            fill={v === null ? "#93939a" : "#ededed"}
                             fontSize="11"
                             fontWeight="500"
                             fontFamily="JetBrains Mono, monospace"
@@ -713,105 +841,122 @@ export function SortingVisualizer({
             </div>
           ) : (
             <div className="space-y-4">
-              {/* For Heap Sort: show live Binary Heap Tree right above the bars! */}
-              {algo === "heap-sort" && (curBarStep.heapSize ?? 0) > 0 && (() => {
-                const hs = curBarStep.heapSize ?? 0;
-                const maxLevel = Math.floor(Math.log2(hs));
-                const svgH = Math.max(120, 26 + maxLevel * 44 + 26);
-                return (
-                <div className="border-b border-[#ededed]/[0.07] pb-3">
-                  <div className="mb-1 text-center font-mono text-xs text-[#85858b]">
-                    Active {heapType === "max" ? "Max-Heap" : "Min-Heap"} tree (size {hs})
-                  </div>
-                  <svg viewBox={`0 0 640 ${svgH}`} className="mx-auto w-full max-w-xl">
-                    {curBarStep.arr.slice(0, hs).map((_, i) => {
-                      const level = Math.floor(Math.log2(i + 1));
-                      const posInLevel = i - (Math.pow(2, level) - 1);
-                      const countInLevel = Math.pow(2, level);
-                      const x = ((posInLevel + 0.5) / countInLevel) * 640;
-                      const y = 24 + level * 44;
-                      const li = 2 * i + 1;
-                      const ri = 2 * i + 2;
+              {algo === "heap-sort" &&
+                (curBarStep.heapSize ?? 0) > 0 &&
+                (() => {
+                  const hs = curBarStep.heapSize ?? 0;
+                  const maxLevel = Math.floor(Math.log2(hs));
+                  const svgH = Math.max(120, 26 + maxLevel * 44 + 26);
+                  return (
+                    <div className="border-b border-[#ededed]/[0.07] pb-3">
+                      <div className="mb-1 text-center font-mono text-xs text-[#93939a]">
+                        Active {heapType === "max" ? "Max-Heap" : "Min-Heap"} tree (size {hs})
+                      </div>
+                      <svg viewBox={`0 0 640 ${svgH}`} className="mx-auto w-full max-w-xl">
+                        {curBarStep.arr.slice(0, hs).map((_, i) => {
+                          const level = Math.floor(Math.log2(i + 1));
+                          const posInLevel = i - (Math.pow(2, level) - 1);
+                          const countInLevel = Math.pow(2, level);
+                          const x = ((posInLevel + 0.5) / countInLevel) * 640;
+                          const y = 24 + level * 44;
+                          const li = 2 * i + 1;
+                          const ri = 2 * i + 2;
 
-                      const childCoords = (ci: number) => {
-                        const cl = Math.floor(Math.log2(ci + 1));
-                        const cp = ci - (Math.pow(2, cl) - 1);
-                        const cc = Math.pow(2, cl);
-                        return { x: ((cp + 0.5) / cc) * 640, y: 24 + cl * 44 };
-                      };
+                          const childCoords = (ci: number) => {
+                            const cl = Math.floor(Math.log2(ci + 1));
+                            const cp = ci - (Math.pow(2, cl) - 1);
+                            const cc = Math.pow(2, cl);
+                            return { x: ((cp + 0.5) / cc) * 640, y: 24 + cl * 44 };
+                          };
 
-                      return (
-                        <g key={`e-${i}`}>
-                          {li < hs && (
-                            <line
-                              x1={x}
-                              y1={y}
-                              x2={childCoords(li).x}
-                              y2={childCoords(li).y}
-                              stroke="rgba(237,237,237,0.18)"
-                              strokeWidth="1.5"
-                            />
-                          )}
-                          {ri < hs && (
-                            <line
-                              x1={x}
-                              y1={y}
-                              x2={childCoords(ri).x}
-                              y2={childCoords(ri).y}
-                              stroke="rgba(237,237,237,0.18)"
-                              strokeWidth="1.5"
-                            />
-                          )}
-                        </g>
-                      );
-                    })}
-                    {curBarStep.arr.slice(0, hs).map((val, i) => {
-                      const level = Math.floor(Math.log2(i + 1));
-                      const posInLevel = i - (Math.pow(2, level) - 1);
-                      const countInLevel = Math.pow(2, level);
-                      const x = ((posInLevel + 0.5) / countInLevel) * 640;
-                      const y = 24 + level * 44;
-                      const st = curBarStep.states[i];
-                      const fill =
-                        st === "swap" ? "#3a191b" : st === "comparing" ? "#33240d" : st === "pivot" ? "#2c2c30" : "#19191b";
-                      const stroke =
-                        st === "swap" ? "#e5484d" : st === "comparing" ? "#f59e0b" : st === "pivot" ? "#ededed" : "#48484f";
-                      return (
-                        <g key={`n-${i}`}>
-                          <circle cx={x} cy={y} r={16} fill={fill} stroke={stroke} strokeWidth="1.8" />
-                          <text
-                            x={x}
-                            y={y}
-                            textAnchor="middle"
-                            dominantBaseline="central"
-                            fill="#ededed"
-                            fontSize="11"
-                            fontWeight="500"
-                            fontFamily="JetBrains Mono, monospace"
-                          >
-                            {val}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </svg>
-                </div>
-                );
-              })()}
+                          return (
+                            <g key={`e-${i}`}>
+                              {li < hs && (
+                                <line
+                                  x1={x}
+                                  y1={y}
+                                  x2={childCoords(li).x}
+                                  y2={childCoords(li).y}
+                                  stroke="rgba(237,237,237,0.18)"
+                                  strokeWidth="1.5"
+                                />
+                              )}
+                              {ri < hs && (
+                                <line
+                                  x1={x}
+                                  y1={y}
+                                  x2={childCoords(ri).x}
+                                  y2={childCoords(ri).y}
+                                  stroke="rgba(237,237,237,0.18)"
+                                  strokeWidth="1.5"
+                                />
+                              )}
+                            </g>
+                          );
+                        })}
+                        {curBarStep.arr.slice(0, hs).map((val, i) => {
+                          const level = Math.floor(Math.log2(i + 1));
+                          const posInLevel = i - (Math.pow(2, level) - 1);
+                          const countInLevel = Math.pow(2, level);
+                          const x = ((posInLevel + 0.5) / countInLevel) * 640;
+                          const y = 24 + level * 44;
+                          const st = curBarStep.states[i];
+                          const fill =
+                            st === "swap"
+                              ? "#3a191b"
+                              : st === "comparing"
+                              ? "#33240d"
+                              : st === "pivot"
+                              ? "#2c2c30"
+                              : "#19191b";
+                          const stroke =
+                            st === "swap"
+                              ? "#e5484d"
+                              : st === "comparing"
+                              ? "#f59e0b"
+                              : st === "pivot"
+                              ? "#ededed"
+                              : "#48484f";
+                          return (
+                            <g key={`n-${i}`}>
+                              <circle cx={x} cy={y} r={16} fill={fill} stroke={stroke} strokeWidth="1.8" />
+                              <text
+                                x={x}
+                                y={y}
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                fill="#ededed"
+                                fontSize="11"
+                                fontWeight="500"
+                                fontFamily="JetBrains Mono, monospace"
+                              >
+                                {val}
+                              </text>
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    </div>
+                  );
+                })()}
 
-              {/* Bar Chart */}
               <div className="flex h-[240px] items-end justify-center gap-2.5 px-2 pt-7 pb-1">
                 {curBarStep.arr.map((val, i) => {
                   const st = curBarStep.states[i] ?? "unsorted";
-                  const hPx = Math.max(18, Math.round((val / maxBarVal) * 182));
+                  const hPx = Math.max(18, Math.round(((val + shift) / maxShifted) * 182));
                   return (
-                    <div key={i} className="flex h-full flex-1 max-w-16 flex-col items-center justify-end gap-1.5">
-                      <span className="font-mono text-xs font-medium tabular-nums text-[#a1a1a6]">{val}</span>
+                    <div
+                      key={i}
+                      className="flex h-full flex-1 max-w-16 flex-col items-center justify-end gap-1.5"
+                    >
+                      <span className="font-mono text-xs font-medium tabular-nums text-[#a1a1a6]">
+                        {val}
+                      </span>
                       <div
                         style={{ height: `${hPx}px` }}
                         className={`w-full rounded-t-md transition-[height,background-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] ${barColors[st]}`}
                       />
-                      <span className="font-mono text-xs tabular-nums text-[#85858b]">[{i}]</span>
+                      <span className="font-mono text-xs tabular-nums text-[#93939a]">[{i}]</span>
                     </div>
                   );
                 })}
@@ -821,18 +966,15 @@ export function SortingVisualizer({
         }
         controls={
           <PlaybackDock
-            isPlaying={playing}
-            onTogglePlay={() => {
-              if (stepIdx >= totalSteps) setStepIdx(0);
-              setPlaying((p) => !p);
-            }}
-            onReset={() => { setPlaying(false); setStepIdx(0); }}
-            onStepBack={() => { setPlaying(false); setStepIdx((s) => Math.max(0, s - 1)); }}
-            onStepForward={() => { setPlaying(false); setStepIdx((s) => Math.min(totalSteps, s + 1)); }}
-            canStepBack={stepIdx > 0}
-            canStepForward={stepIdx < totalSteps}
-            speed={speed}
-            onSpeedChange={setSpeed}
+            isPlaying={pb.playing}
+            onTogglePlay={pb.togglePlay}
+            onReset={pb.reset}
+            onStepBack={pb.stepBack}
+            onStepForward={pb.stepForward}
+            canStepBack={pb.canStepBack}
+            canStepForward={pb.canStepForward}
+            speed={pb.speed}
+            onSpeedChange={pb.setSpeed}
             legend={
               isMergeTree
                 ? [
@@ -857,17 +999,30 @@ export function SortingVisualizer({
               <InspectorBlock
                 highlight
                 title="Choose Pivot Element"
-                description="Quick Sort partitions around the selected pivot. The pivot choice affects partitioning steps."
+                description="Quick Sort partitions around the selected pivot. Re-roll random pivots to compare partition trees."
               >
                 <StudioSelect
                   value={pivotMode}
-                  onChange={(e) => setPivotMode(e.target.value as "last" | "first" | "middle" | "random")}
+                  onChange={(e) => {
+                    const next = e.target.value as "last" | "first" | "middle" | "random";
+                    setPivotMode(next);
+                    if (next === "random") setRandomSeed(Math.floor(Math.random() * 1e9) + 1);
+                  }}
                 >
                   <option value="last">Last element</option>
                   <option value="first">First element</option>
                   <option value="middle">Middle element</option>
                   <option value="random">Random element</option>
                 </StudioSelect>
+                {pivotMode === "random" && (
+                  <StudioBtn
+                    variant="secondary"
+                    className="mt-2 w-full"
+                    onClick={() => setRandomSeed(Math.floor(Math.random() * 1e9) + 1)}
+                  >
+                    Re-roll Random Pivots
+                  </StudioBtn>
+                )}
               </InspectorBlock>
             )}
 
@@ -913,7 +1068,10 @@ export function SortingVisualizer({
               </InspectorBlock>
             )}
 
-            <InspectorBlock highlight={algo === "selection-sort" || algo === "insertion-sort"} title="Array (comma separated, 2-12 values)">
+            <InspectorBlock
+              highlight={algo === "selection-sort" || algo === "insertion-sort"}
+              title="Array (comma separated, 2-12 values)"
+            >
               <StudioTextarea
                 rows={2}
                 value={arrText}
@@ -931,6 +1089,7 @@ export function SortingVisualizer({
                     const rand = Array.from({ length: 8 }, () => Math.floor(Math.random() * 18) + 1);
                     setArr(rand);
                     setArrText(rand.join(", "));
+                    setInputNotice(undefined);
                   }}
                 >
                   Random
@@ -956,6 +1115,7 @@ export function SortingVisualizer({
                   const chosen = map[id];
                   setArr(chosen);
                   setArrText(chosen.join(", "));
+                  setInputNotice(undefined);
                 }}
               />
             </InspectorBlock>
@@ -970,6 +1130,7 @@ export function SortingVisualizer({
             intuition={info.intuition}
             keyPoints={info.points}
             complexities={info.complexities}
+            javaCode={info.javaCode}
           />
         }
       />

@@ -28,7 +28,7 @@ export function InspectorBlock({
         </span>
       </div>
       {description && (
-        <p className="mb-3 text-xs leading-relaxed text-[#85858b]">{description}</p>
+        <p className="mb-3 text-xs leading-relaxed text-[#93939a]">{description}</p>
       )}
       {children}
     </div>

@@ -15,13 +15,19 @@
     --border-hairline: rgba(237, 237, 237, 0.08);
     --text-primary: #ededed;
     --text-secondary: #a1a1a6;
-    --text-muted: #85858b;
+    --text-muted: #93939a;
     --accent: #f59e0b;
     --ease-instrument: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   html {
     scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 
   body {
@@ -35,7 +41,8 @@
   a:focus-visible,
   input:focus-visible,
   textarea:focus-visible,
-  select:focus-visible {
+  select:focus-visible,
+  [role="button"]:focus-visible {
     outline: 2px solid rgba(245, 158, 11, 0.65);
     outline-offset: 2px;
   }

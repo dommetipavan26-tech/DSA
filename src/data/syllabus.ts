@@ -3,9 +3,9 @@ export type CategoryId =
   | "analysis"
   | "linear"
   | "trees"
-  | "graphs"
   | "sorting"
-  | "searching";
+  | "searching"
+  | "graphs";
 
 export type TopicId =
   | "home"
@@ -23,13 +23,6 @@ export type TopicId =
   | "binary-tree"
   | "avl"
   | "expression-tree"
-  | "graph-basics"
-  | "bfs"
-  | "dfs"
-  | "mst"
-  | "dijkstra"
-  | "floyd"
-  | "warshall"
   | "selection-sort"
   | "insertion-sort"
   | "quick-sort"
@@ -37,7 +30,14 @@ export type TopicId =
   | "heap-sort"
   | "linear-search"
   | "binary-search"
-  | "hashing";
+  | "hashing"
+  | "graph-basics"
+  | "bfs"
+  | "dfs"
+  | "mst"
+  | "dijkstra"
+  | "floyd"
+  | "warshall";
 
 export interface TopicMeta {
   id: TopicId;
@@ -52,9 +52,9 @@ export const CATEGORIES: { id: Exclude<CategoryId, "all">; label: string; module
   { id: "analysis", label: "Algorithm Analysis", moduleCode: "Module 1" },
   { id: "linear", label: "Linear Structures", moduleCode: "Module 2" },
   { id: "trees", label: "Trees", moduleCode: "Module 3" },
-  { id: "graphs", label: "Graphs", moduleCode: "Module 6" },
   { id: "sorting", label: "Sorting Algorithms", moduleCode: "Module 4" },
   { id: "searching", label: "Search & Hashing", moduleCode: "Module 5" },
+  { id: "graphs", label: "Graphs", moduleCode: "Module 6" },
 ];
 
 export const TOPICS: TopicMeta[] = [
@@ -64,16 +64,16 @@ export const TOPICS: TopicMeta[] = [
     category: "analysis",
     moduleTag: "Module 1",
     title: "Asymptotic Notations",
-    shortDesc: "Compare Big-O, little-o, Omega, and Theta growth curves with live input size n.",
-    tags: ["Big-O", "Omega", "Theta", "Best/Worst Case"],
+    shortDesc: "Compare Big-O, little-o, Omega, and Theta bounds and growth curves with live input size n.",
+    tags: ["Big-O", "Omega", "Theta", "Bounds"],
   },
   {
     id: "recursion",
     category: "analysis",
     moduleTag: "Module 1",
     title: "Recursion vs Iteration",
-    shortDesc: "Trace call stacks for Factorial & Matrix Transpose with custom n and time complexity.",
-    tags: ["Call Stack", "Factorial", "Matrix Transpose"],
+    shortDesc: "Compare call stacks vs O(1) iterative loops for Factorial, plus 2D Matrix Transpose tracing.",
+    tags: ["Call Stack", "Iterative", "Matrix Transpose"],
   },
 
   // Module 2: Linear Data Structures
@@ -114,7 +114,7 @@ export const TOPICS: TopicMeta[] = [
     category: "linear",
     moduleTag: "Module 2",
     title: "Stack & Postfix Eval",
-    shortDesc: "LIFO push/pop operations plus live postfix expression evaluation from CSE2001 lab.",
+    shortDesc: "LIFO push/pop operations plus step-by-step postfix expression evaluation.",
     tags: ["LIFO", "Push/Pop", "Postfix Eval"],
   },
   {
@@ -136,9 +136,9 @@ export const TOPICS: TopicMeta[] = [
   {
     id: "pqueue",
     category: "linear",
-    moduleTag: "Module 2 & 4",
+    moduleTag: "Module 2",
     title: "Priority Queue",
-    shortDesc: "Serve items by priority rather than arrival order using Min/Max priority heap.",
+    shortDesc: "Serve items by priority rather than arrival order with a synchronized Min/Max binary heap view.",
     tags: ["Min/Max Priority", "Heap View", "Extract"],
   },
 
@@ -156,7 +156,7 @@ export const TOPICS: TopicMeta[] = [
     category: "trees",
     moduleTag: "Module 3",
     title: "Binary Tree / BST & Traversals",
-    shortDesc: "Insert, delete, search, and animate In-order, Pre-order, and Post-order traversals.",
+    shortDesc: "Trace insert, delete, search, and animate In-order, Pre-order, and Post-order traversals.",
     tags: ["Insert/Delete", "In-order", "Pre-order", "Post-order"],
   },
   {
@@ -164,7 +164,7 @@ export const TOPICS: TopicMeta[] = [
     category: "trees",
     moduleTag: "Module 3",
     title: "AVL Tree & Rotations",
-    shortDesc: "Self-balancing BST displaying balance factors and LL, RR, LR, RL rotations step-by-step.",
+    shortDesc: "Self-balancing BST displaying imbalance states, balance factors, and LL, RR, LR, RL rotations.",
     tags: ["LL / RR", "LR / RL", "Balance Factor"],
   },
   {
@@ -172,66 +172,8 @@ export const TOPICS: TopicMeta[] = [
     category: "trees",
     moduleTag: "Module 3",
     title: "Expression & Reconstruction Tree",
-    shortDesc: "Build expression trees from Infix/Prefix/Postfix OR reconstruct from In-order + Pre/Post-order.",
+    shortDesc: "Build and evaluate expression trees from Infix/Prefix/Postfix, or reconstruct from traversals.",
     tags: ["In/Pre/Post-order", "Reconstruct", "Evaluate"],
-  },
-
-  // Module 6: Graphs
-  {
-    id: "graph-basics",
-    category: "graphs",
-    moduleTag: "Module 6",
-    title: "Graph & Representations",
-    shortDesc: "Build custom weighted graphs and inspect Adjacency Matrix, Adjacency List & Sparse Matrix.",
-    tags: ["Adjacency List", "Matrix", "Sparse Matrix"],
-  },
-  {
-    id: "bfs",
-    category: "graphs",
-    moduleTag: "Module 6",
-    title: "Breadth-First Search (BFS)",
-    shortDesc: "Level-by-level traversal with live Queue state and graph connectivity check.",
-    tags: ["Queue", "Level-Order", "Connectivity"],
-  },
-  {
-    id: "dfs",
-    category: "graphs",
-    moduleTag: "Module 6",
-    title: "Depth-First Search (DFS)",
-    shortDesc: "Deep branch exploration with call stack tracing, discovery order, and backtracking.",
-    tags: ["Recursion Stack", "Backtracking", "O(V+E)"],
-  },
-  {
-    id: "mst",
-    category: "graphs",
-    moduleTag: "Module 6",
-    title: "MST: Prim's & Kruskal's",
-    shortDesc: "Compare greedy Prim's frontier expansion vs Kruskal's sorted edges & Union-Find.",
-    tags: ["Prim's", "Kruskal's", "Union-Find"],
-  },
-  {
-    id: "dijkstra",
-    category: "graphs",
-    moduleTag: "Module 6",
-    title: "Dijkstra's Shortest Path",
-    shortDesc: "Single-source shortest paths with live edge relaxation and distance table updates.",
-    tags: ["Single Source", "Relaxation", "Priority"],
-  },
-  {
-    id: "floyd",
-    category: "graphs",
-    moduleTag: "Module 6 / Extra",
-    title: "Floyd-Warshall (All-Pairs)",
-    shortDesc: "Edit your own distance matrix and step through every intermediate pivot vertex k.",
-    tags: ["All-Pairs", "Editable Matrix", "O(V^3) DP"],
-  },
-  {
-    id: "warshall",
-    category: "graphs",
-    moduleTag: "Graph Connectivity",
-    title: "Warshall's Transitive Closure",
-    shortDesc: "Toggle 0/1 reachability cells and watch transitive paths form step-by-step.",
-    tags: ["Reachability", "Boolean Matrix", "Closure"],
   },
 
   // Module 4: Sorting
@@ -241,7 +183,7 @@ export const TOPICS: TopicMeta[] = [
     moduleTag: "Module 4",
     title: "Selection Sort",
     shortDesc: "Repeatedly find the minimum element in the unsorted slice and swap it into place.",
-    tags: ["O(n^2)", "In-place", "CGPA Lab"],
+    tags: ["O(n^2)", "In-place", "Min Scan"],
   },
   {
     id: "insertion-sort",
@@ -282,8 +224,8 @@ export const TOPICS: TopicMeta[] = [
     category: "searching",
     moduleTag: "Module 5",
     title: "Linear Search",
-    shortDesc: "Sequential scan across custom arrays or student/person records with comparison count.",
-    tags: ["Sequential", "Unsorted OK", "O(n)"],
+    shortDesc: "Sequential scan across custom number arrays or student records with comparison count.",
+    tags: ["Sequential", "Records", "O(n)"],
   },
   {
     id: "binary-search",
@@ -301,4 +243,64 @@ export const TOPICS: TopicMeta[] = [
     shortDesc: "Separate Chaining, Linear/Quadratic Probing, Double Hashing, Rehashing & Extendible Hashing.",
     tags: ["Chaining", "Probing", "Double Hash", "Rehash", "Extendible"],
   },
+
+  // Module 6: Graphs
+  {
+    id: "graph-basics",
+    category: "graphs",
+    moduleTag: "Module 6",
+    title: "Graph & Representations",
+    shortDesc: "Build custom weighted directed or undirected graphs and inspect Matrix, List & Sparse views.",
+    tags: ["Adjacency List", "Matrix", "Sparse Matrix"],
+  },
+  {
+    id: "bfs",
+    category: "graphs",
+    moduleTag: "Module 6",
+    title: "Breadth-First Search (BFS)",
+    shortDesc: "Level-by-level traversal with live Queue state, directed support, and connectivity check.",
+    tags: ["Queue", "Level-Order", "Connectivity"],
+  },
+  {
+    id: "dfs",
+    category: "graphs",
+    moduleTag: "Module 6",
+    title: "Depth-First Search (DFS)",
+    shortDesc: "Deep branch exploration with call stack tracing, discovery order, and backtracking.",
+    tags: ["Recursion Stack", "Backtracking", "O(V+E)"],
+  },
+  {
+    id: "mst",
+    category: "graphs",
+    moduleTag: "Module 6",
+    title: "MST: Prim's & Kruskal's",
+    shortDesc: "Compare greedy Prim's frontier expansion vs Kruskal's sorted edges & Union-Find.",
+    tags: ["Prim's", "Kruskal's", "Union-Find"],
+  },
+  {
+    id: "dijkstra",
+    category: "graphs",
+    moduleTag: "Module 6",
+    title: "Dijkstra's Shortest Path",
+    shortDesc: "Single-source shortest paths with live edge relaxation and distance table updates.",
+    tags: ["Single Source", "Relaxation", "Priority"],
+  },
+  {
+    id: "floyd",
+    category: "graphs",
+    moduleTag: "Module 6",
+    title: "Floyd-Warshall (All-Pairs)",
+    shortDesc: "Edit your own distance matrix and step through every intermediate pivot vertex k.",
+    tags: ["All-Pairs", "Editable Matrix", "O(V^3) DP"],
+  },
+  {
+    id: "warshall",
+    category: "graphs",
+    moduleTag: "Module 6",
+    title: "Warshall's Transitive Closure",
+    shortDesc: "Toggle 0/1 reachability cells and watch transitive paths form step-by-step.",
+    tags: ["Reachability", "Boolean Matrix", "Closure"],
+  },
 ];
+
+export const VALID_TOPIC_IDS = new Set<string>(["home", ...TOPICS.map((t) => t.id)]);

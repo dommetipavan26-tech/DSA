@@ -15,6 +15,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint src vite.config.ts",
+    "test": "node --experimental-strip-types --test src/lib/parsers.test.ts",
     "check": "npm run typecheck && npm run lint"
   },
   "dependencies": {

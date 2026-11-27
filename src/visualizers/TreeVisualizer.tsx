@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ConceptNotesGrid,
   MorphingPillTabs,
@@ -12,6 +12,15 @@ import {
   StudioInput,
   StudioSelect,
 } from "../components/ui/input-helpers";
+import { usePlayback } from "../hooks/usePlayback";
+import {
+  buildExprTreeFromPostfix,
+  buildExprTreeFromPrefix,
+  evaluateExprTree,
+  infixToPostfixChecked,
+  parseNumberList,
+  reconstructBinaryTree,
+} from "../lib/parsers";
 import type { TopicId } from "../data/syllabus";
 
 interface TreeNodeData {
@@ -33,40 +42,65 @@ interface PositionedNode {
   parentId?: string;
 }
 
-function layoutBinaryTree(root: TreeNodeData | null, width = 680, yGap = 72) {
+/**
+ * In-order x-slot binary tree layout: guarantees minimum horizontal spacing so
+ * deep or skewed trees never overlap regardless of depth.
+ */
+function layoutBinaryTree(root: TreeNodeData | null, showBF = false, yGap = 68) {
   const nodes: PositionedNode[] = [];
-  const edges: { x1: number; y1: number; x2: number; y2: number; active?: boolean }[] = [];
+  const edges: { x1: number; y1: number; x2: number; y2: number }[] = [];
+  if (!root) return { nodes, edges, width: 680, height: 260 };
 
-  function walk(
-    node: TreeNodeData | null | undefined,
-    depth: number,
-    minX: number,
-    maxX: number,
-    parent?: PositionedNode
-  ) {
+  let totalCount = 0;
+  function countNodes(n: TreeNodeData | null | undefined) {
+    if (!n) return;
+    totalCount++;
+    countNodes(n.left);
+    countNodes(n.right);
+  }
+  countNodes(root);
+
+  const minSlotW = showBF ? 76 : 56;
+  const padX = 48;
+  const width = Math.max(680, totalCount * minSlotW + padX * 2);
+  const slotStep = totalCount > 1 ? (width - padX * 2) / (totalCount - 1) : 0;
+
+  let slotCursor = 0;
+  const coordMap = new Map<string, PositionedNode>();
+
+  function assign(node: TreeNodeData | null | undefined, depth: number, parentId?: string) {
     if (!node) return;
-    const x = ((minX + maxX) / 2) * width;
-    const y = 38 + depth * yGap;
-    const cur: PositionedNode = {
+    assign(node.left, depth + 1, node.id);
+    const x = totalCount === 1 ? width / 2 : padX + slotCursor * slotStep;
+    const y = 36 + depth * yGap;
+    slotCursor++;
+    const positioned: PositionedNode = {
       id: node.id,
       label: node.label,
       x,
       y,
       bf: node.bf,
       height: node.height,
-      parentId: parent?.id,
+      parentId,
     };
-    nodes.push(cur);
-    if (parent) {
-      edges.push({ x1: parent.x, y1: parent.y, x2: cur.x, y2: cur.y });
-    }
-    walk(node.left, depth + 1, minX, (minX + maxX) / 2, cur);
-    walk(node.right, depth + 1, (minX + maxX) / 2, maxX, cur);
+    coordMap.set(node.id, positioned);
+    nodes.push(positioned);
+    assign(node.right, depth + 1, node.id);
   }
 
-  walk(root, 0, 0.04, 0.96);
-  const maxDepth = nodes.reduce((m, n) => Math.max(m, n.y), 60);
-  return { nodes, edges, height: Math.max(260, maxDepth + 44) };
+  assign(root, 0);
+
+  for (const n of nodes) {
+    if (n.parentId) {
+      const parent = coordMap.get(n.parentId);
+      if (parent) {
+        edges.push({ x1: parent.x, y1: parent.y, x2: n.x, y2: n.y });
+      }
+    }
+  }
+
+  const maxY = nodes.reduce((m, n) => Math.max(m, n.y), 60);
+  return { nodes, edges, width, height: Math.max(250, maxY + 42) };
 }
 
 function TreeSvgCanvas({
@@ -86,105 +120,114 @@ function TreeSvgCanvas({
   onNodeClick?: (node: PositionedNode) => void;
   selectedId?: string | null;
 }) {
-  const { nodes, edges, height } = useMemo(() => layoutBinaryTree(root), [root]);
+  const { nodes, edges, width, height } = useMemo(
+    () => layoutBinaryTree(root, showBF),
+    [root, showBF]
+  );
+
   if (!root) {
     return (
-      <div className="flex h-[260px] items-center justify-center text-center text-sm text-[#85858b]">
+      <div className="flex h-[250px] items-center justify-center text-center text-sm text-[#93939a]">
         Tree is empty — enter values in Input &amp; controls to build a tree
       </div>
     );
   }
 
   return (
-    <svg viewBox={`0 0 680 ${height}`} className="w-full max-h-[370px] overflow-visible">
-      {edges.map((e, i) => (
-        <line
-          key={i}
-          x1={e.x1}
-          y1={e.y1}
-          x2={e.x2}
-          y2={e.y2}
-          stroke="rgba(237,237,237,0.18)"
-          strokeWidth="1.8"
-        />
-      ))}
-      {nodes.map((n) => {
-        const isWarn = warnIds.includes(n.id);
-        const isActive = activeIds.includes(n.id);
-        const isVisited = visitedIds.includes(n.id);
-        const isSelected = selectedId === n.id;
+    <div className="w-full overflow-x-auto">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="mx-auto w-full max-h-[380px] overflow-visible"
+        style={{ minWidth: width > 720 ? `${Math.min(width, 980)}px` : undefined }}
+      >
+        {edges.map((e, i) => (
+          <line
+            key={i}
+            x1={e.x1}
+            y1={e.y1}
+            x2={e.x2}
+            y2={e.y2}
+            stroke="rgba(237,237,237,0.18)"
+            strokeWidth="1.8"
+          />
+        ))}
+        {nodes.map((n) => {
+          const isWarn = warnIds.includes(n.id);
+          const isActive = activeIds.includes(n.id);
+          const isVisited = visitedIds.includes(n.id);
+          const isSelected = selectedId === n.id;
 
-        const fill = isWarn
-          ? "#450a0a"
-          : isActive
-          ? "#2e1065"
-          : isVisited
-          ? "#064e3b"
-          : isSelected
-          ? "#172554"
-          : "#19191b";
-        const stroke = isWarn
-          ? "#f43f5e"
-          : isActive
-          ? "#a78bfa"
-          : isVisited
-          ? "#10b981"
-          : isSelected
-          ? "#38bdf8"
-          : "#6366f1";
-        const glow = isWarn
-          ? "drop-shadow(0 0 8px rgba(244,63,94,0.55))"
-          : isActive
-          ? "drop-shadow(0 0 8px rgba(139,92,246,0.55))"
-          : isVisited
-          ? "drop-shadow(0 0 8px rgba(16,185,129,0.5))"
-          : isSelected
-          ? "drop-shadow(0 0 8px rgba(56,189,248,0.5))"
-          : "drop-shadow(0 0 5px rgba(99,102,241,0.28))";
+          const fill = isWarn
+            ? "#3a1517"
+            : isActive
+            ? "#2b200c"
+            : isVisited
+            ? "#11281d"
+            : isSelected
+            ? "#142338"
+            : "#19191b";
+          const stroke = isWarn
+            ? "#e5484d"
+            : isActive
+            ? "#f59e0b"
+            : isVisited
+            ? "#4cc38a"
+            : isSelected
+            ? "#60a5fa"
+            : "#48484f";
 
-        return (
-          <g
-            key={n.id}
-            onClick={() => onNodeClick?.(n)}
-            className={onNodeClick ? "cursor-pointer" : undefined}
-          >
-            <circle
-              cx={n.x}
-              cy={n.y}
-              r={20}
-              fill={fill}
-              stroke={stroke}
-              strokeWidth={isActive || isWarn || isSelected ? 2.5 : 2}
-              style={{ filter: glow }}
-            />
-            <text
-              x={n.x}
-              y={n.y}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill="#ededed"
-              fontSize="12"
-              fontWeight="500"
-              fontFamily="JetBrains Mono, monospace"
+          return (
+            <g
+              key={n.id}
+              role={onNodeClick ? "button" : undefined}
+              tabIndex={onNodeClick ? 0 : undefined}
+              aria-label={onNodeClick ? `Inspect node ${n.label}` : undefined}
+              onClick={() => onNodeClick?.(n)}
+              onKeyDown={(ev) => {
+                if (onNodeClick && (ev.key === "Enter" || ev.key === " ")) {
+                  ev.preventDefault();
+                  onNodeClick(n);
+                }
+              }}
+              className={onNodeClick ? "cursor-pointer outline-none" : undefined}
             >
-              {n.label}
-            </text>
-            {showBF && typeof n.bf === "number" && (
+              <circle
+                cx={n.x}
+                cy={n.y}
+                r={19}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={isActive || isWarn || isSelected ? 2.4 : 1.8}
+              />
               <text
-                x={n.x + 24}
-                y={n.y - 12}
-                fill={Math.abs(n.bf) > 1 ? "#e5484d" : n.bf === 0 ? "#4cc38a" : "#f59e0b"}
-                fontSize="11"
+                x={n.x}
+                y={n.y}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill="#ededed"
+                fontSize="12"
                 fontWeight="500"
                 fontFamily="JetBrains Mono, monospace"
               >
-                BF:{n.bf}
+                {n.label}
               </text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
+              {showBF && typeof n.bf === "number" && (
+                <text
+                  x={n.x + 23}
+                  y={n.y - 12}
+                  fill={Math.abs(n.bf) > 1 ? "#e5484d" : n.bf === 0 ? "#4cc38a" : "#f59e0b"}
+                  fontSize="11"
+                  fontWeight="600"
+                  fontFamily="JetBrains Mono, monospace"
+                >
+                  BF:{n.bf > 0 ? `+${n.bf}` : n.bf}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
 
@@ -214,9 +257,11 @@ function TreeBasicsVisualizer() {
     let isComplete = true;
     let sawNull = false;
     const leafDepths = new Set<number>();
-    const stats: Record<string, { depth: number; degree: number; isLeaf: boolean; parent: string }> = {};
+    const stats: Record<
+      string,
+      { depth: number; degree: number; isLeaf: boolean; parent: string }
+    > = {};
 
-    // BFS for completeness & depth stats
     const q: { node: TreeNodeData | null; depth: number; parent: string }[] = r
       ? [{ node: r, depth: 0, parent: "None (Root)" }]
       : [];
@@ -243,7 +288,13 @@ function TreeBasicsVisualizer() {
 
     return {
       root: r,
-      analysis: { totalNodes, height: r ? maxDepth : 0, isFull: r !== null && isFull, isComplete: r !== null && isComplete, isPerfect },
+      analysis: {
+        totalNodes,
+        height: r ? String(maxDepth) : "—",
+        isFull: r !== null && isFull,
+        isComplete: r !== null && isComplete,
+        isPerfect,
+      },
       nodeStats: stats,
     };
   }, [tokens]);
@@ -256,7 +307,7 @@ function TreeBasicsVisualizer() {
       .slice(0, 15)
       .map((s) => (s.toLowerCase() === "null" || s === "_" ? null : s));
     setTokens(parsed);
-    setSelectedId("idx-0");
+    setSelectedId(parsed[0] ? "idx-0" : null);
   };
 
   const selStat = selectedId ? nodeStats[selectedId] : undefined;
@@ -273,17 +324,43 @@ function TreeBasicsVisualizer() {
             onNodeClick={(n) => setSelectedId(n.id)}
           />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <div className={`rounded-lg border px-3 py-2.5 text-xs ${analysis.isFull ? "border-[#4cc38a]/40 bg-[#4cc38a]/10 text-[#ededed]" : "border-[#ededed]/[0.08] bg-[#19191b] text-[#a1a1a6]"}`}>
+            <div
+              className={`rounded-lg border px-3 py-2.5 text-xs ${
+                analysis.isFull
+                  ? "border-[#4cc38a]/40 bg-[#4cc38a]/10 text-[#ededed]"
+                  : "border-[#ededed]/[0.08] bg-[#19191b] text-[#a1a1a6]"
+              }`}
+            >
               <div className="font-medium">Full binary tree: {analysis.isFull ? "Yes" : "No"}</div>
-              <div className="mt-1 text-xs text-[#85858b]">Every node has 0 or 2 children</div>
+              <div className="mt-1 text-xs text-[#93939a]">Every node has 0 or 2 children</div>
             </div>
-            <div className={`rounded-lg border px-3 py-2.5 text-xs ${analysis.isComplete ? "border-[#4cc38a]/40 bg-[#4cc38a]/10 text-[#ededed]" : "border-[#ededed]/[0.08] bg-[#19191b] text-[#a1a1a6]"}`}>
-              <div className="font-medium">Complete binary tree: {analysis.isComplete ? "Yes" : "No"}</div>
-              <div className="mt-1 text-xs text-[#85858b]">Filled level by level from left to right</div>
+            <div
+              className={`rounded-lg border px-3 py-2.5 text-xs ${
+                analysis.isComplete
+                  ? "border-[#4cc38a]/40 bg-[#4cc38a]/10 text-[#ededed]"
+                  : "border-[#ededed]/[0.08] bg-[#19191b] text-[#a1a1a6]"
+              }`}
+            >
+              <div className="font-medium">
+                Complete binary tree: {analysis.isComplete ? "Yes" : "No"}
+              </div>
+              <div className="mt-1 text-xs text-[#93939a]">
+                Filled level by level from left to right
+              </div>
             </div>
-            <div className={`rounded-lg border px-3 py-2.5 text-xs ${analysis.isPerfect ? "border-[#4cc38a]/40 bg-[#4cc38a]/10 text-[#ededed]" : "border-[#ededed]/[0.08] bg-[#19191b] text-[#a1a1a6]"}`}>
-              <div className="font-medium">Perfect binary tree: {analysis.isPerfect ? "Yes" : "No"}</div>
-              <div className="mt-1 text-xs text-[#85858b]">Internal nodes have 2 children; leaves align</div>
+            <div
+              className={`rounded-lg border px-3 py-2.5 text-xs ${
+                analysis.isPerfect
+                  ? "border-[#4cc38a]/40 bg-[#4cc38a]/10 text-[#ededed]"
+                  : "border-[#ededed]/[0.08] bg-[#19191b] text-[#a1a1a6]"
+              }`}
+            >
+              <div className="font-medium">
+                Perfect binary tree: {analysis.isPerfect ? "Yes" : "No"}
+              </div>
+              <div className="mt-1 text-xs text-[#93939a]">
+                Internal nodes have 2 children; leaves align
+              </div>
             </div>
           </div>
         </div>
@@ -298,10 +375,15 @@ function TreeBasicsVisualizer() {
             <StudioInput
               value={arrayInput}
               onChange={(e) => setArrayInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && applyInput(arrayInput)}
               placeholder="1, 2, 3, 4, 5, null, 7"
             />
-            <StudioBtn variant="primary" className="mt-2 w-full" onClick={() => applyInput(arrayInput)}>
-              Check & Visualize Tree
+            <StudioBtn
+              variant="primary"
+              className="mt-2 w-full"
+              onClick={() => applyInput(arrayInput)}
+            >
+              Check &amp; Visualize Tree
             </StudioBtn>
           </InspectorBlock>
 
@@ -326,16 +408,27 @@ function TreeBasicsVisualizer() {
             />
           </InspectorBlock>
 
-          <InspectorBlock title="Node inspector (click a node)">
+          <InspectorBlock title="Node inspector (click or focus a node)">
             {selStat ? (
               <div className="grid grid-cols-2 gap-1.5 font-mono text-xs text-[#a1a1a6]">
-                <div>Parent: <span className="text-[#60a5fa]">{selStat.parent}</span></div>
-                <div>Depth: <span className="text-amber-400">{selStat.depth}</span></div>
-                <div>Degree: <span className="text-[#ededed]">{selStat.degree}</span></div>
-                <div>Type: <span className="text-[#4cc38a]">{selStat.isLeaf ? "Leaf" : "Internal"}</span></div>
+                <div>
+                  Parent: <span className="text-[#60a5fa]">{selStat.parent}</span>
+                </div>
+                <div>
+                  Depth: <span className="text-amber-400">{selStat.depth}</span>
+                </div>
+                <div>
+                  Degree: <span className="text-[#ededed]">{selStat.degree}</span>
+                </div>
+                <div>
+                  Type:{" "}
+                  <span className="text-[#4cc38a]">{selStat.isLeaf ? "Leaf" : "Internal"}</span>
+                </div>
               </div>
             ) : (
-              <p className="text-xs text-[#85858b]">Click any node in the tree to inspect its properties</p>
+              <p className="text-xs text-[#93939a]">
+                Click any node in the tree to inspect its properties
+              </p>
             )}
           </InspectorBlock>
         </>
@@ -348,6 +441,11 @@ function TreeBasicsVisualizer() {
             "Complete BT: All levels full except possibly the last, packed left-to-right (used by Heaps).",
             "Perfect BT: Both Full and Complete with 2^(h+1) - 1 total nodes.",
           ]}
+          javaCode={`static boolean isFull(TreeNode n) {
+  if (n == null) return true;
+  if ((n.left == null) != (n.right == null)) return false;
+  return isFull(n.left) && isFull(n.right);
+}`}
         />
       }
     />
@@ -355,7 +453,7 @@ function TreeBasicsVisualizer() {
 }
 
 /* =========================================================
-   2. BINARY SEARCH TREE + IN-ORDER / PRE-ORDER / POST-ORDER
+   2. BINARY SEARCH TREE + ANIMATED INSERT / DELETE / TRAVERSALS
    ========================================================= */
 interface BSTRec {
   val: number;
@@ -403,109 +501,171 @@ interface TreeStep {
   root: BSTRec | null;
   active: string[];
   visited: string[];
+  warn?: string[];
   output: number[];
   msg: string;
+}
+
+function buildBSTTraversalSteps(
+  root: BSTRec | null,
+  mode: "inorder" | "preorder" | "postorder"
+): TreeStep[] {
+  const out: TreeStep[] = [
+    {
+      root: cloneBST(root),
+      active: [],
+      visited: [],
+      output: [],
+      msg: `Ready for ${mode} traversal.`,
+    },
+  ];
+  const visited: string[] = [];
+  const output: number[] = [];
+
+  function walk(node: BSTRec | null) {
+    if (!node) return;
+    const id = `bst-${node.val}`;
+    if (mode === "preorder") {
+      visited.push(id);
+      output.push(node.val);
+      out.push({
+        root: cloneBST(root),
+        active: [id],
+        visited: [...visited],
+        output: [...output],
+        msg: `Visit Node ${node.val} (N -> L -> R)`,
+      });
+    }
+    walk(node.left);
+    if (mode === "inorder") {
+      visited.push(id);
+      output.push(node.val);
+      out.push({
+        root: cloneBST(root),
+        active: [id],
+        visited: [...visited],
+        output: [...output],
+        msg: `Visit Node ${node.val} (L -> N -> R)`,
+      });
+    }
+    walk(node.right);
+    if (mode === "postorder") {
+      visited.push(id);
+      output.push(node.val);
+      out.push({
+        root: cloneBST(root),
+        active: [id],
+        visited: [...visited],
+        output: [...output],
+        msg: `Visit Node ${node.val} (L -> R -> N)`,
+      });
+    }
+  }
+
+  walk(root);
+  out.push({
+    root: cloneBST(root),
+    active: [],
+    visited: [...visited],
+    output: [...output],
+    msg: `${mode.toUpperCase()} Complete: [${output.join(", ")}]`,
+  });
+  return out;
 }
 
 function BinaryTreeVisualizer() {
   const [bulkText, setBulkText] = useState("50, 30, 70, 20, 40, 60, 80");
   const [singleVal, setSingleVal] = useState("45");
-  const [traversalMode, setTraversalMode] = useState<"inorder" | "preorder" | "postorder">("inorder");
+  const [traversalMode, setTraversalMode] = useState<"inorder" | "preorder" | "postorder">(
+    "inorder"
+  );
   const [bstRoot, setBstRoot] = useState<BSTRec | null>(() => {
     let r: BSTRec | null = null;
-    [50, 30, 70, 20, 40, 60, 80].forEach((v) => { r = insertBST(r, v); });
+    [50, 30, 70, 20, 40, 60, 80].forEach((v) => {
+      r = insertBST(r, v);
+    });
     return r;
   });
 
-  const [steps, setSteps] = useState<TreeStep[]>([]);
-  const [stepIdx, setStepIdx] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(5);
+  const [customTrace, setCustomTrace] = useState<{
+    badge: string;
+    key: number;
+    steps: TreeStep[];
+  } | null>(null);
 
-  const rebuildTraversalSteps = (root: BSTRec | null, mode: "inorder" | "preorder" | "postorder") => {
-    const out: TreeStep[] = [
-      { root: cloneBST(root), active: [], visited: [], output: [], msg: `Ready for ${mode} traversal.` },
-    ];
-    const visited: string[] = [];
-    const output: number[] = [];
+  const traversalSteps = useMemo(
+    () => buildBSTTraversalSteps(bstRoot, traversalMode),
+    [bstRoot, traversalMode]
+  );
 
-    function walk(node: BSTRec | null) {
-      if (!node) return;
-      const id = `bst-${node.val}`;
-      if (mode === "preorder") {
-        visited.push(id);
-        output.push(node.val);
-        out.push({ root: cloneBST(root), active: [id], visited: [...visited], output: [...output], msg: `Visit Node ${node.val} (N -> L -> R)` });
-      }
-      walk(node.left);
-      if (mode === "inorder") {
-        visited.push(id);
-        output.push(node.val);
-        out.push({ root: cloneBST(root), active: [id], visited: [...visited], output: [...output], msg: `Visit Node ${node.val} (L -> N -> R)` });
-      }
-      walk(node.right);
-      if (mode === "postorder") {
-        visited.push(id);
-        output.push(node.val);
-        out.push({ root: cloneBST(root), active: [id], visited: [...visited], output: [...output], msg: `Visit Node ${node.val} (L -> R -> N)` });
-      }
-    }
-    walk(root);
-    out.push({
-      root: cloneBST(root),
-      active: [],
-      visited: [...visited],
-      output: [...output],
-      msg: `${mode.toUpperCase()} Complete: [${output.join(", ")}]`,
-    });
-    setSteps(out);
-    setStepIdx(0);
-    setPlaying(false);
-  };
+  const activeSteps = customTrace ? customTrace.steps : traversalSteps;
+  const activeBadge = customTrace ? customTrace.badge : traversalMode.toUpperCase();
+  const traceKey = customTrace
+    ? `custom-${customTrace.key}`
+    : `trav-${traversalMode}-${JSON.stringify(bstRoot)}`;
 
-  useEffect(() => {
-    rebuildTraversalSteps(bstRoot, traversalMode);
-  }, [bstRoot, traversalMode]);
-
-  useEffect(() => {
-    if (!playing) return;
-    const t = setInterval(() => {
-      setStepIdx((p) => {
-        if (p >= steps.length - 1) {
-          setPlaying(false);
-          return p;
-        }
-        return p + 1;
-      });
-    }, 1100 - speed * 90);
-    return () => clearInterval(t);
-  }, [playing, speed, steps.length]);
+  const pb = usePlayback({
+    totalSteps: Math.max(0, activeSteps.length - 1),
+    resetKey: traceKey,
+    baseDelayMs: 1100,
+    stepDelayMs: 90,
+  });
 
   const handleBulkBuild = () => {
-    const nums = bulkText
-      .split(/[,\s]+/)
-      .map(Number)
-      .filter((n) => !Number.isNaN(n))
-      .slice(0, 15);
+    const parsed = parseNumberList(bulkText, { unique: true, maxCount: 15 });
     let r: BSTRec | null = null;
-    nums.forEach((v) => { r = insertBST(r, v); });
+    parsed.values.forEach((v) => {
+      r = insertBST(r, v);
+    });
+    setBulkText(parsed.values.join(", "));
+    setCustomTrace(null);
     setBstRoot(r);
   };
 
   const traceSingleOp = (op: "insert" | "delete" | "search") => {
     const val = Number(singleVal);
-    if (Number.isNaN(val)) return;
-    setPlaying(false);
+    if (!Number.isFinite(val) || singleVal.trim() === "") return;
+
+    const beforeSnapshot = cloneBST(bstRoot);
     const trace: TreeStep[] = [];
-    let cur = bstRoot;
+    let cur = beforeSnapshot;
     const path: string[] = [];
+    let foundNode: BSTRec | null = null;
+
+    if (!cur) {
+      if (op === "insert") {
+        const nextRoot = insertBST(null, val);
+        setBstRoot(nextRoot);
+        trace.push({
+          root: cloneBST(nextRoot),
+          active: [`bst-${val}`],
+          visited: [`bst-${val}`],
+          output: [],
+          msg: `Tree was empty — inserted ${val} as root.`,
+        });
+        setCustomTrace({ badge: "INSERT", key: Date.now(), steps: trace });
+        pb.jumpTo(0, false);
+        return;
+      }
+      trace.push({
+        root: null,
+        active: [],
+        visited: [],
+        output: [],
+        msg: `BST is empty — ${val} not found.`,
+      });
+      setCustomTrace({ badge: op.toUpperCase(), key: Date.now(), steps: trace });
+      pb.jumpTo(0, false);
+      return;
+    }
 
     while (cur) {
       const id = `bst-${cur.val}`;
       path.push(id);
       if (val === cur.val) {
+        foundNode = cur;
         trace.push({
-          root: cloneBST(bstRoot),
+          root: cloneBST(beforeSnapshot),
           active: [id],
           visited: [...path],
           output: [],
@@ -514,45 +674,111 @@ function BinaryTreeVisualizer() {
         break;
       }
       trace.push({
-        root: cloneBST(bstRoot),
+        root: cloneBST(beforeSnapshot),
         active: [id],
         visited: [...path],
         output: [],
-        msg: `${val} ${val < cur.val ? "<" : ">"} ${cur.val} -> move ${val < cur.val ? "LEFT" : "RIGHT"}.`,
+        msg: `${val} ${val < cur.val ? "<" : ">"} ${cur.val} -> move ${
+          val < cur.val ? "LEFT" : "RIGHT"
+        }.`,
       });
       cur = val < cur.val ? cur.left : cur.right;
     }
 
     if (op === "insert") {
-      const nextRoot = insertBST(cloneBST(bstRoot), val);
-      setBstRoot(nextRoot);
-    } else if (op === "delete") {
-      const nextRoot = deleteBST(cloneBST(bstRoot), val);
-      setBstRoot(nextRoot);
-    } else {
-      if (!cur) {
+      if (foundNode) {
         trace.push({
-          root: cloneBST(bstRoot),
+          root: cloneBST(beforeSnapshot),
+          active: [],
+          visited: path,
+          warn: [`bst-${val}`],
+          output: [],
+          msg: `Duplicate key ${val} already exists in BST — skipped.`,
+        });
+      } else {
+        const nextRoot = insertBST(cloneBST(beforeSnapshot), val);
+        setBstRoot(nextRoot);
+        trace.push({
+          root: cloneBST(nextRoot),
+          active: [],
+          visited: [...path, `bst-${val}`],
+          output: [],
+          msg: `Inserted ${val} as new leaf node.`,
+        });
+      }
+      setCustomTrace({ badge: "INSERT", key: Date.now(), steps: trace });
+      pb.jumpTo(0, true);
+    } else if (op === "delete") {
+      if (!foundNode) {
+        trace.push({
+          root: cloneBST(beforeSnapshot),
+          active: [],
+          visited: path,
+          output: [],
+          msg: `Reached NULL — ${val} is not in the BST (nothing deleted).`,
+        });
+      } else {
+        const hasTwo = Boolean(foundNode.left && foundNode.right);
+        let succVal: number | null = null;
+        if (hasTwo) {
+          let succ = foundNode.right!;
+          while (succ.left) succ = succ.left;
+          succVal = succ.val;
+          trace.push({
+            root: cloneBST(beforeSnapshot),
+            active: [`bst-${succVal}`],
+            visited: path,
+            warn: [`bst-${val}`],
+            output: [],
+            msg: `Node ${val} has 2 children — replace with in-order successor ${succVal}.`,
+          });
+        }
+        const nextRoot = deleteBST(cloneBST(beforeSnapshot), val);
+        setBstRoot(nextRoot);
+        trace.push({
+          root: cloneBST(nextRoot),
+          active: succVal !== null ? [`bst-${succVal}`] : [],
+          visited: [],
+          output: [],
+          msg: hasTwo
+            ? `Deleted ${val} and promoted successor ${succVal}.`
+            : `Deleted node ${val} from BST.`,
+        });
+      }
+      setCustomTrace({ badge: "DELETE", key: Date.now(), steps: trace });
+      pb.jumpTo(0, true);
+    } else {
+      if (!foundNode) {
+        trace.push({
+          root: cloneBST(beforeSnapshot),
           active: [],
           visited: path,
           output: [],
           msg: `Reached NULL — ${val} is not in the BST.`,
         });
       }
-      setSteps(trace);
-      setStepIdx(0);
-      setPlaying(true);
+      setCustomTrace({ badge: "SEARCH", key: Date.now(), steps: trace });
+      pb.jumpTo(0, true);
     }
   };
 
-  const cur = steps[stepIdx] ?? { root: bstRoot, active: [], visited: [], output: [], msg: "Ready" };
+  const cur = activeSteps[pb.stepIdx] ?? activeSteps[0] ?? {
+    root: bstRoot,
+    active: [],
+    visited: [],
+    output: [],
+    msg: "Ready",
+  };
 
   return (
     <div className="space-y-4">
       <MorphingPillTabs
         layoutId="bst-trav-tabs"
         value={traversalMode}
-        onChange={setTraversalMode}
+        onChange={(m) => {
+          setTraversalMode(m);
+          setCustomTrace(null);
+        }}
         options={[
           { id: "inorder", label: "In-order (L-N-R)" },
           { id: "preorder", label: "Pre-order (N-L-R)" },
@@ -561,23 +787,27 @@ function BinaryTreeVisualizer() {
       />
 
       <VisualizerWorkspace
-        step={stepIdx}
-        totalSteps={Math.max(0, steps.length - 1)}
+        step={pb.stepIdx}
+        totalSteps={Math.max(0, activeSteps.length - 1)}
         statusText={cur.msg}
-        badge={traversalMode.toUpperCase()}
-        isPlaying={playing}
+        badge={activeBadge}
+        isPlaying={pb.playing}
         stage={
           <div className="space-y-3">
             <TreeSvgCanvas
               root={bstToVisual(cur.root)}
               activeIds={cur.active}
               visitedIds={cur.visited}
+              warnIds={cur.warn}
             />
             {cur.output.length > 0 && (
               <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-[#ededed]/[0.08] bg-[#19191b] px-3 py-2">
                 <span className="mr-1 text-xs font-medium text-[#a1a1a6]">Output:</span>
                 {cur.output.map((v, i) => (
-                  <span key={`${v}-${i}`} className="rounded bg-[#4cc38a]/15 px-2 py-0.5 font-mono text-xs font-medium tabular-nums text-[#4cc38a]">
+                  <span
+                    key={`${v}-${i}`}
+                    className="rounded bg-[#4cc38a]/15 px-2 py-0.5 font-mono text-xs font-medium tabular-nums text-[#4cc38a]"
+                  >
                     {v}
                   </span>
                 ))}
@@ -587,52 +817,78 @@ function BinaryTreeVisualizer() {
         }
         controls={
           <PlaybackDock
-            isPlaying={playing}
-            onTogglePlay={() => {
-              if (stepIdx >= steps.length - 1) setStepIdx(0);
-              setPlaying((p) => !p);
-            }}
-            onReset={() => {
-              setPlaying(false);
-              setStepIdx(0);
-            }}
-            onStepBack={() => {
-              setPlaying(false);
-              setStepIdx((s) => Math.max(0, s - 1));
-            }}
-            onStepForward={() => {
-              setPlaying(false);
-              setStepIdx((s) => Math.min(steps.length - 1, s + 1));
-            }}
-            canStepBack={stepIdx > 0}
-            canStepForward={stepIdx < steps.length - 1}
-            speed={speed}
-            onSpeedChange={setSpeed}
+            isPlaying={pb.playing}
+            onTogglePlay={pb.togglePlay}
+            onReset={pb.reset}
+            onStepBack={pb.stepBack}
+            onStepForward={pb.stepForward}
+            canStepBack={pb.canStepBack}
+            canStepForward={pb.canStepForward}
+            speed={pb.speed}
+            onSpeedChange={pb.setSpeed}
             legend={[
-              { label: "Unvisited", colorClass: "bg-indigo-500" },
-              { label: "Current node", colorClass: "bg-violet-500" },
-              { label: "Visited", colorClass: "bg-emerald-500" },
+              { label: "Unvisited", colorClass: "bg-[#48484f]" },
+              { label: "Current / Compare", colorClass: "bg-amber-500" },
+              { label: "Visited / Inserted", colorClass: "bg-[#4cc38a]" },
+              { label: "Target / Duplicate", colorClass: "bg-[#e5484d]" },
             ]}
           />
         }
         inspector={
           <>
-            <InspectorBlock highlight title="Build Your Own BST" description="Enter comma-separated values to insert sequentially.">
+            <InspectorBlock
+              highlight
+              title="Build Your Own BST"
+              description="Enter comma-separated values to insert sequentially (max 15)."
+            >
               <div className="flex gap-2">
-                <StudioInput value={bulkText} onChange={(e) => setBulkText(e.target.value)} placeholder="50, 30, 70..." />
-                <StudioBtn variant="primary" onClick={handleBulkBuild}>Build</StudioBtn>
+                <StudioInput
+                  value={bulkText}
+                  onChange={(e) => setBulkText(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleBulkBuild()}
+                  placeholder="50, 30, 70..."
+                />
+                <StudioBtn variant="primary" onClick={handleBulkBuild}>
+                  Build
+                </StudioBtn>
               </div>
             </InspectorBlock>
 
-            <InspectorBlock title="Insert / Delete / Search Node">
+            <InspectorBlock title="Trace Insert / Delete / Search">
               <div className="flex gap-2">
-                <StudioInput type="number" value={singleVal} onChange={(e) => setSingleVal(e.target.value)} />
-                <StudioBtn variant="primary" onClick={() => traceSingleOp("insert")}>Insert</StudioBtn>
+                <StudioInput
+                  type="number"
+                  value={singleVal}
+                  onChange={(e) => setSingleVal(e.target.value)}
+                />
+                <StudioBtn variant="primary" onClick={() => traceSingleOp("insert")}>
+                  Insert
+                </StudioBtn>
               </div>
               <div className="mt-2 flex gap-2">
-                <StudioBtn variant="danger" className="flex-1" onClick={() => traceSingleOp("delete")}>Delete</StudioBtn>
-                <StudioBtn variant="secondary" className="flex-1" onClick={() => traceSingleOp("search")}>Trace Search</StudioBtn>
-                <StudioBtn variant="secondary" onClick={() => setBstRoot(null)}>Clear</StudioBtn>
+                <StudioBtn
+                  variant="danger"
+                  className="flex-1"
+                  onClick={() => traceSingleOp("delete")}
+                >
+                  Delete
+                </StudioBtn>
+                <StudioBtn
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => traceSingleOp("search")}
+                >
+                  Search
+                </StudioBtn>
+                <StudioBtn
+                  variant="secondary"
+                  onClick={() => {
+                    setCustomTrace(null);
+                    setBstRoot(null);
+                  }}
+                >
+                  Clear
+                </StudioBtn>
               </div>
             </InspectorBlock>
 
@@ -641,18 +897,21 @@ function BinaryTreeVisualizer() {
                 presets={[
                   { id: "bal", label: "Balanced (7)" },
                   { id: "skew", label: "Skewed (Worst Case)" },
-                  { id: "lab", label: "Syllabus Lab" },
+                  { id: "deep", label: "11-Node BST" },
                 ]}
                 onSelect={(id) => {
                   const map: Record<string, string> = {
                     bal: "50, 30, 70, 20, 40, 60, 80",
-                    skew: "10, 20, 30, 40, 50",
-                    lab: "25, 15, 50, 10, 22, 35, 70, 4, 12, 18, 24",
+                    skew: "10, 20, 30, 40, 50, 60",
+                    deep: "25, 15, 50, 10, 22, 35, 70, 4, 12, 18, 24",
                   };
                   setBulkText(map[id]);
-                  const nums = map[id].split(",").map(Number);
+                  const nums = parseNumberList(map[id]).values;
                   let r: BSTRec | null = null;
-                  nums.forEach((v) => { r = insertBST(r, v); });
+                  nums.forEach((v) => {
+                    r = insertBST(r, v);
+                  });
+                  setCustomTrace(null);
                   setBstRoot(r);
                 }}
               />
@@ -666,11 +925,18 @@ function BinaryTreeVisualizer() {
               "In-order (L-N-R): Gives sorted order in BST.",
               "Pre-order (N-L-R): Root first — great for serializing or copying a tree.",
               "Post-order (L-R-N): Children before parent — great for safe deletion or expression evaluation.",
+              "Deleting a 2-child node copies its in-order successor (minimum of right subtree).",
             ]}
             complexities={[
               { op: "Search / Insert / Delete", best: "O(log n)", avg: "O(log n)", worst: "O(n) skewed" },
               { op: "Tree Traversals", best: "O(n)", avg: "O(n)", worst: "O(n)", space: "O(h)" },
             ]}
+            javaCode={`TreeNode insert(TreeNode root, int val) {
+  if (root == null) return new TreeNode(val);
+  if (val < root.val) root.left = insert(root.left, val);
+  else if (val > root.val) root.right = insert(root.right, val);
+  return root;
+}`}
           />
         }
       />
@@ -679,7 +945,7 @@ function BinaryTreeVisualizer() {
 }
 
 /* =========================================================
-   3. AVL TREE (LL, RR, LR, RL STEP-BY-STEP!)
+   3. AVL TREE (SHOWS PRE-ROTATION IMBALANCE + INTERMEDIATE DOUBLE ROTATIONS!)
    ========================================================= */
 interface AVLNode {
   val: number;
@@ -688,11 +954,19 @@ interface AVLNode {
   right: AVLNode | null;
 }
 
-function avlH(n: AVLNode | null): number { return n ? n.height : 0; }
-function avlBF(n: AVLNode | null): number { return n ? avlH(n.left) - avlH(n.right) : 0; }
-function avlUpd(n: AVLNode) { n.height = 1 + Math.max(avlH(n.left), avlH(n.right)); }
+function avlH(n: AVLNode | null): number {
+  return n ? n.height : 0;
+}
+function avlBF(n: AVLNode | null): number {
+  return n ? avlH(n.left) - avlH(n.right) : 0;
+}
+function avlUpd(n: AVLNode) {
+  n.height = 1 + Math.max(avlH(n.left), avlH(n.right));
+}
 function cloneAVL(n: AVLNode | null): AVLNode | null {
-  return n ? { val: n.val, height: n.height, left: cloneAVL(n.left), right: cloneAVL(n.right) } : null;
+  return n
+    ? { val: n.val, height: n.height, left: cloneAVL(n.left), right: cloneAVL(n.right) }
+    : null;
 }
 function rotRight(y: AVLNode): AVLNode {
   const x = y.left!;
@@ -713,11 +987,192 @@ function rotLeft(x: AVLNode): AVLNode {
   return y;
 }
 
+function containsAVL(n: AVLNode | null, val: number): boolean {
+  if (!n) return false;
+  if (n.val === val) return true;
+  return val < n.val ? containsAVL(n.left, val) : containsAVL(n.right, val);
+}
+
+function insertRawNoBalance(n: AVLNode | null, val: number): AVLNode {
+  if (!n) return { val, height: 1, left: null, right: null };
+  if (val < n.val) n.left = insertRawNoBalance(n.left, val);
+  else if (val > n.val) n.right = insertRawNoBalance(n.right, val);
+  avlUpd(n);
+  return n;
+}
+
+function deleteRawNoBalance(n: AVLNode | null, val: number): AVLNode | null {
+  if (!n) return null;
+  if (val < n.val) n.left = deleteRawNoBalance(n.left, val);
+  else if (val > n.val) n.right = deleteRawNoBalance(n.right, val);
+  else {
+    if (!n.left || !n.right) return n.left || n.right;
+    let min = n.right;
+    while (min.left) min = min.left;
+    n.val = min.val;
+    n.right = deleteRawNoBalance(n.right, min.val);
+  }
+  avlUpd(n);
+  return n;
+}
+
+/** Find deepest unbalanced node (|BF| > 1) */
+function findDeepestUnbalanced(n: AVLNode | null): AVLNode | null {
+  if (!n) return null;
+  const leftU = findDeepestUnbalanced(n.left);
+  if (leftU) return leftU;
+  const rightU = findDeepestUnbalanced(n.right);
+  if (rightU) return rightU;
+  return Math.abs(avlBF(n)) > 1 ? n : null;
+}
+
+/** Replace node with val === targetVal using transformer and recompute ancestor heights */
+function transformNode(
+  n: AVLNode | null,
+  targetVal: number,
+  fn: (target: AVLNode) => AVLNode
+): AVLNode | null {
+  if (!n) return null;
+  if (n.val === targetVal) return fn(n);
+  if (targetVal < n.val) n.left = transformNode(n.left, targetVal, fn);
+  else n.right = transformNode(n.right, targetVal, fn);
+  avlUpd(n);
+  return n;
+}
+
 interface AVLStep {
   root: AVLNode | null;
   active: string[];
+  visited: string[];
   warn: string[];
   msg: string;
+}
+
+function rebalanceWithSteps(rawRoot: AVLNode | null, actionLabel: string): {
+  finalRoot: AVLNode | null;
+  steps: AVLStep[];
+} {
+  let cur = cloneAVL(rawRoot);
+  const steps: AVLStep[] = [];
+  let guard = 0;
+
+  while (guard++ < 10) {
+    const unbalanced = findDeepestUnbalanced(cur);
+    if (!unbalanced) break;
+
+    const uVal = unbalanced.val;
+    const bf = avlBF(unbalanced);
+
+    // 1. Show imbalanced state BEFORE rotating
+    steps.push({
+      root: cloneAVL(cur),
+      active: [],
+      visited: [],
+      warn: [`avl-${uVal}`],
+      msg: `${actionLabel} caused imbalance at node ${uVal} (BF = ${bf > 0 ? `+${bf}` : bf}).`,
+    });
+
+    if (bf > 1 && avlBF(unbalanced.left) >= 0) {
+      // LL -> single Right Rotation
+      cur = transformNode(cur, uVal, (t) => rotRight(t));
+      steps.push({
+        root: cloneAVL(cur),
+        active: [],
+        visited: [`avl-${uVal}`],
+        warn: [],
+        msg: `LL case at ${uVal} -> Right Rotate to restore balance.`,
+      });
+    } else if (bf < -1 && avlBF(unbalanced.right) <= 0) {
+      // RR -> single Left Rotation
+      cur = transformNode(cur, uVal, (t) => rotLeft(t));
+      steps.push({
+        root: cloneAVL(cur),
+        active: [],
+        visited: [`avl-${uVal}`],
+        warn: [],
+        msg: `RR case at ${uVal} -> Left Rotate to restore balance.`,
+      });
+    } else if (bf > 1 && avlBF(unbalanced.left) < 0) {
+      // LR -> Left Rotate left child, THEN Right Rotate node
+      const childVal = unbalanced.left!.val;
+      cur = transformNode(cur, uVal, (t) => {
+        t.left = rotLeft(t.left!);
+        avlUpd(t);
+        return t;
+      });
+      steps.push({
+        root: cloneAVL(cur),
+        active: [`avl-${childVal}`],
+        visited: [],
+        warn: [`avl-${uVal}`],
+        msg: `LR step 1/2: Left Rotate child ${childVal} (converting LR -> LL).`,
+      });
+      cur = transformNode(cur, uVal, (t) => rotRight(t));
+      steps.push({
+        root: cloneAVL(cur),
+        active: [],
+        visited: [`avl-${uVal}`],
+        warn: [],
+        msg: `LR step 2/2: Right Rotate ${uVal} to restore balance.`,
+      });
+    } else if (bf < -1 && avlBF(unbalanced.right) > 0) {
+      // RL -> Right Rotate right child, THEN Left Rotate node
+      const childVal = unbalanced.right!.val;
+      cur = transformNode(cur, uVal, (t) => {
+        t.right = rotRight(t.right!);
+        avlUpd(t);
+        return t;
+      });
+      steps.push({
+        root: cloneAVL(cur),
+        active: [`avl-${childVal}`],
+        visited: [],
+        warn: [`avl-${uVal}`],
+        msg: `RL step 1/2: Right Rotate child ${childVal} (converting RL -> RR).`,
+      });
+      cur = transformNode(cur, uVal, (t) => rotLeft(t));
+      steps.push({
+        root: cloneAVL(cur),
+        active: [],
+        visited: [`avl-${uVal}`],
+        warn: [],
+        msg: `RL step 2/2: Left Rotate ${uVal} to restore balance.`,
+      });
+    }
+  }
+
+  return { finalRoot: cur, steps };
+}
+
+function buildAVLSequence(vals: number[]): AVLStep[] {
+  let root: AVLNode | null = null;
+  const out: AVLStep[] = [
+    {
+      root: null,
+      active: [],
+      visited: [],
+      warn: [],
+      msg: `Ready to build AVL tree for [${vals.join(", ")}].`,
+    },
+  ];
+  for (const v of vals) {
+    if (containsAVL(root, v)) continue;
+    const raw = insertRawNoBalance(cloneAVL(root), v);
+    const { finalRoot, steps: rotSteps } = rebalanceWithSteps(raw, `Inserting ${v}`);
+    if (rotSteps.length === 0) {
+      out.push({
+        root: cloneAVL(raw),
+        active: [`avl-${v}`],
+        visited: [],
+        warn: [],
+        msg: `Inserted ${v} — all balance factors remain within [-1, +1].`,
+      });
+    } else {
+      out.push(...rotSteps);
+    }
+    root = finalRoot;
+  }
+  return out;
 }
 
 function avlToVisual(n: AVLNode | null): TreeNodeData | null {
@@ -735,163 +1190,136 @@ function avlToVisual(n: AVLNode | null): TreeNodeData | null {
 function AVLTreeVisualizer() {
   const [bulkInput, setBulkInput] = useState("3, 2, 1, 4, 5, 6, 7, 8, 9");
   const [singleVal, setSingleVal] = useState("10");
-  const [steps, setSteps] = useState<AVLStep[]>(() => buildAVLSequence([3, 2, 1, 4, 5, 6, 7, 8, 9]));
-  const [stepIdx, setStepIdx] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(4);
+  const [steps, setSteps] = useState<AVLStep[]>(() =>
+    buildAVLSequence([3, 2, 1, 4, 5, 6, 7, 8, 9])
+  );
+  const [seqVersion, setSeqVersion] = useState(0);
 
-  function insertWithLog(node: AVLNode | null, val: number, rotEvents: string[]): AVLNode {
-    if (!node) return { val, height: 1, left: null, right: null };
-    if (val < node.val) node.left = insertWithLog(node.left, val, rotEvents);
-    else if (val > node.val) node.right = insertWithLog(node.right, val, rotEvents);
-    else return node;
-    avlUpd(node);
-    const bf = avlBF(node);
-    if (bf > 1 && val < node.left!.val) {
-      rotEvents.push(`LL imbalance at ${node.val} (BF=${bf}) -> Right Rotate`);
-      return rotRight(node);
-    }
-    if (bf < -1 && val > node.right!.val) {
-      rotEvents.push(`RR imbalance at ${node.val} (BF=${bf}) -> Left Rotate`);
-      return rotLeft(node);
-    }
-    if (bf > 1 && val > node.left!.val) {
-      rotEvents.push(`LR imbalance at ${node.val} (BF=${bf}) -> Left Rotate ${node.left!.val}, then Right Rotate ${node.val}`);
-      node.left = rotLeft(node.left!);
-      return rotRight(node);
-    }
-    if (bf < -1 && val < node.right!.val) {
-      rotEvents.push(`RL imbalance at ${node.val} (BF=${bf}) -> Right Rotate ${node.right!.val}, then Left Rotate ${node.val}`);
-      node.right = rotRight(node.right!);
-      return rotLeft(node);
-    }
-    return node;
-  }
-
-  function deleteAVLNode(node: AVLNode | null, val: number, rotEvents: string[]): AVLNode | null {
-    if (!node) return null;
-    if (val < node.val) node.left = deleteAVLNode(node.left, val, rotEvents);
-    else if (val > node.val) node.right = deleteAVLNode(node.right, val, rotEvents);
-    else {
-      if (!node.left || !node.right) return node.left || node.right;
-      let min = node.right;
-      while (min.left) min = min.left;
-      node.val = min.val;
-      node.right = deleteAVLNode(node.right, min.val, rotEvents);
-    }
-    avlUpd(node);
-    const bf = avlBF(node);
-    if (bf > 1 && avlBF(node.left) >= 0) {
-      rotEvents.push(`Delete LL rebalance at ${node.val} -> Right Rotate`);
-      return rotRight(node);
-    }
-    if (bf > 1 && avlBF(node.left) < 0) {
-      rotEvents.push(`Delete LR rebalance at ${node.val} -> Left-Right Rotate`);
-      node.left = rotLeft(node.left!);
-      return rotRight(node);
-    }
-    if (bf < -1 && avlBF(node.right) <= 0) {
-      rotEvents.push(`Delete RR rebalance at ${node.val} -> Left Rotate`);
-      return rotLeft(node);
-    }
-    if (bf < -1 && avlBF(node.right) > 0) {
-      rotEvents.push(`Delete RL rebalance at ${node.val} -> Right-Left Rotate`);
-      node.right = rotRight(node.right!);
-      return rotLeft(node);
-    }
-    return node;
-  }
-
-  function buildAVLSequence(vals: number[]): AVLStep[] {
-    let root: AVLNode | null = null;
-    const out: AVLStep[] = [{ root: null, active: [], warn: [], msg: `Ready to build AVL tree for [${vals.join(", ")}].` }];
-    vals.forEach((v) => {
-      const rots: string[] = [];
-      root = insertWithLog(cloneAVL(root), v, rots);
-      out.push({
-        root: cloneAVL(root),
-        active: [`avl-${v}`],
-        warn: [],
-        msg: rots.length ? `Insert ${v} -> ${rots.join(" | ")}` : `Inserted ${v} (Tree remains balanced).`,
-      });
-    });
-    return out;
-  }
-
-  useEffect(() => {
-    if (!playing) return;
-    const t = setInterval(() => {
-      setStepIdx((p) => {
-        if (p >= steps.length - 1) {
-          setPlaying(false);
-          return p;
-        }
-        return p + 1;
-      });
-    }, 1250 - speed * 95);
-    return () => clearInterval(t);
-  }, [playing, speed, steps.length]);
+  const pb = usePlayback({
+    totalSteps: Math.max(0, steps.length - 1),
+    resetKey: seqVersion,
+    initialSpeed: 4,
+    baseDelayMs: 1250,
+    stepDelayMs: 95,
+  });
 
   const buildFromInput = (raw = bulkInput) => {
-    const vals = raw
-      .split(/[,\s]+/)
-      .map(Number)
-      .filter((n) => !Number.isNaN(n))
-      .slice(0, 15);
-    if (!vals.length) return;
-    setSteps(buildAVLSequence(vals));
-    setStepIdx(0);
-    setPlaying(true);
+    const parsed = parseNumberList(raw, { unique: true, maxCount: 15 });
+    if (!parsed.values.length) return;
+    setBulkInput(parsed.values.join(", "));
+    setSteps(buildAVLSequence(parsed.values));
+    setSeqVersion((v) => v + 1);
+    pb.jumpTo(0, true);
   };
 
   const singleOp = (op: "insert" | "delete") => {
     const v = Number(singleVal);
-    if (Number.isNaN(v)) return;
-    const base = cloneAVL(steps[stepIdx]?.root ?? null);
-    const rots: string[] = [];
-    const next = op === "insert" ? insertWithLog(base, v, rots) : deleteAVLNode(base, v, rots);
-    const nextStep: AVLStep = {
-      root: cloneAVL(next),
-      active: op === "insert" ? [`avl-${v}`] : [],
-      warn: [],
-      msg: rots.length
-        ? `${op === "insert" ? "Insert" : "Delete"} ${v} -> ${rots.join(" | ")}`
-        : `${op === "insert" ? "Inserted" : "Deleted"} ${v} (balanced)`,
-    };
-    const nextList = [...steps.slice(0, stepIdx + 1), nextStep];
-    setSteps(nextList);
-    setStepIdx(nextList.length - 1);
-    setPlaying(false);
+    if (!Number.isFinite(v) || singleVal.trim() === "") return;
+    const base = cloneAVL(steps[pb.stepIdx]?.root ?? null);
+    const prefix = steps.slice(0, pb.stepIdx + 1);
+
+    if (op === "insert") {
+      if (containsAVL(base, v)) {
+        const nextList: AVLStep[] = [
+          ...prefix,
+          {
+            root: base,
+            active: [],
+            visited: [],
+            warn: [`avl-${v}`],
+            msg: `Key ${v} already exists in AVL tree — duplicate ignored.`,
+          },
+        ];
+        setSteps(nextList);
+        pb.jumpTo(nextList.length - 1, false);
+        return;
+      }
+      const raw = insertRawNoBalance(base, v);
+      const { steps: rotSteps } = rebalanceWithSteps(raw, `Inserting ${v}`);
+      const appended: AVLStep[] =
+        rotSteps.length > 0
+          ? rotSteps
+          : [
+              {
+                root: cloneAVL(raw),
+                active: [`avl-${v}`],
+                visited: [],
+                warn: [],
+                msg: `Inserted ${v} (tree remains balanced).`,
+              },
+            ];
+      const nextList = [...prefix, ...appended];
+      setSteps(nextList);
+      pb.jumpTo(prefix.length, appended.length > 1);
+    } else {
+      if (!containsAVL(base, v)) {
+        const nextList: AVLStep[] = [
+          ...prefix,
+          {
+            root: base,
+            active: [],
+            visited: [],
+            warn: [],
+            msg: `Key ${v} is not in the AVL tree — nothing deleted.`,
+          },
+        ];
+        setSteps(nextList);
+        pb.jumpTo(nextList.length - 1, false);
+        return;
+      }
+      const raw = deleteRawNoBalance(base, v);
+      const { steps: rotSteps } = rebalanceWithSteps(raw, `Deleting ${v}`);
+      const appended: AVLStep[] =
+        rotSteps.length > 0
+          ? rotSteps
+          : [
+              {
+                root: cloneAVL(raw),
+                active: [],
+                visited: [],
+                warn: [],
+                msg: `Deleted ${v} (tree remains balanced).`,
+              },
+            ];
+      const nextList = [...prefix, ...appended];
+      setSteps(nextList);
+      pb.jumpTo(prefix.length, appended.length > 1);
+    }
   };
 
-  const cur = steps[stepIdx] ?? steps[0];
+  const cur = steps[pb.stepIdx] ?? steps[0];
 
   return (
     <VisualizerWorkspace
-      step={stepIdx}
+      step={pb.stepIdx}
       totalSteps={Math.max(0, steps.length - 1)}
       statusText={cur.msg}
       badge="AVL Self-Balancing"
-      isPlaying={playing}
-      stage={<TreeSvgCanvas root={avlToVisual(cur.root)} activeIds={cur.active} warnIds={cur.warn} showBF />}
+      isPlaying={pb.playing}
+      stage={
+        <TreeSvgCanvas
+          root={avlToVisual(cur.root)}
+          activeIds={cur.active}
+          visitedIds={cur.visited}
+          warnIds={cur.warn}
+          showBF
+        />
+      }
       controls={
         <PlaybackDock
-          isPlaying={playing}
-          onTogglePlay={() => {
-            if (stepIdx >= steps.length - 1) setStepIdx(0);
-            setPlaying((p) => !p);
-          }}
-          onReset={() => { setPlaying(false); setStepIdx(0); }}
-          onStepBack={() => { setPlaying(false); setStepIdx((s) => Math.max(0, s - 1)); }}
-          onStepForward={() => { setPlaying(false); setStepIdx((s) => Math.min(steps.length - 1, s + 1)); }}
-          canStepBack={stepIdx > 0}
-          canStepForward={stepIdx < steps.length - 1}
-          speed={speed}
-          onSpeedChange={setSpeed}
+          isPlaying={pb.playing}
+          onTogglePlay={pb.togglePlay}
+          onReset={pb.reset}
+          onStepBack={pb.stepBack}
+          onStepForward={pb.stepForward}
+          canStepBack={pb.canStepBack}
+          canStepForward={pb.canStepForward}
+          speed={pb.speed}
+          onSpeedChange={pb.setSpeed}
           legend={[
-            { label: "BF = 0 (Balanced)", colorClass: "bg-emerald-500" },
-            { label: "BF = ±1 (Valid)", colorClass: "bg-amber-400" },
-            { label: "Newly inserted", colorClass: "bg-violet-500" },
+            { label: "Newly inserted / pivot", colorClass: "bg-amber-500" },
+            { label: "Imbalanced (|BF| > 1)", colorClass: "bg-[#e5484d]" },
+            { label: "Rebalanced", colorClass: "bg-[#4cc38a]" },
           ]}
         />
       }
@@ -900,33 +1328,49 @@ function AVLTreeVisualizer() {
           <InspectorBlock
             highlight
             title="Custom Sequence (Auto-Rotations)"
-            description="Watch LL, RR, LR, RL rotations trigger live as each value enters."
+            description="Watch imbalances (|BF| = 2) appear first, then LL, RR, LR, RL rotations restore balance."
           >
-            <StudioInput value={bulkInput} onChange={(e) => setBulkInput(e.target.value)} />
-            <StudioBtn variant="primary" className="mt-2 w-full" onClick={() => buildFromInput(bulkInput)}>
-              Build & Animate AVL
+            <StudioInput
+              value={bulkInput}
+              onChange={(e) => setBulkInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && buildFromInput(bulkInput)}
+            />
+            <StudioBtn
+              variant="primary"
+              className="mt-2 w-full"
+              onClick={() => buildFromInput(bulkInput)}
+            >
+              Build &amp; Animate AVL
             </StudioBtn>
           </InspectorBlock>
 
           <InspectorBlock title="Insert / Delete Single Key">
             <div className="flex gap-2">
-              <StudioInput type="number" value={singleVal} onChange={(e) => setSingleVal(e.target.value)} />
-              <StudioBtn variant="primary" onClick={() => singleOp("insert")}>Insert</StudioBtn>
-              <StudioBtn variant="danger" onClick={() => singleOp("delete")}>Delete</StudioBtn>
+              <StudioInput
+                type="number"
+                value={singleVal}
+                onChange={(e) => setSingleVal(e.target.value)}
+              />
+              <StudioBtn variant="primary" onClick={() => singleOp("insert")}>
+                Insert
+              </StudioBtn>
+              <StudioBtn variant="danger" onClick={() => singleOp("delete")}>
+                Delete
+              </StudioBtn>
             </div>
           </InspectorBlock>
 
           <InspectorBlock title="Rotation Presets">
             <PresetRow
               presets={[
-                { id: "lab", label: "Syllabus (3,2,1,4,5,6,7,8,9)" },
+                { id: "seq", label: "3,2,1,4,5,6,7,8,9" },
                 { id: "lr", label: "LR Case (30,10,20)" },
                 { id: "rl", label: "RL Case (10,30,20)" },
                 { id: "ll", label: "LL Case (30,20,10)" },
               ]}
               onSelect={(id) => {
                 const map: Record<string, string> = {
-                  lab: "3, 2, 1, 4, 5, 6, 7, 8, 9",
+                  seq: "3, 2, 1, 4, 5, 6, 7, 8, 9",
                   lr: "30, 10, 20",
                   rl: "10, 30, 20",
                   ll: "30, 20, 10",
@@ -952,6 +1396,12 @@ function AVLTreeVisualizer() {
             { op: "Insert (+ Rotations)", best: "O(log n)", avg: "O(log n)", worst: "O(log n)" },
             { op: "Delete (+ Rotations)", best: "O(log n)", avg: "O(log n)", worst: "O(log n)" },
           ]}
+          javaCode={`AVLNode rotateRight(AVLNode y) {
+  AVLNode x = y.left, t2 = x.right;
+  x.right = y; y.left = t2;
+  updateHeight(y); updateHeight(x);
+  return x;
+}`}
         />
       }
     />
@@ -959,91 +1409,8 @@ function AVLTreeVisualizer() {
 }
 
 /* =========================================================
-   4. EXPRESSION TREE & RECONSTRUCTION FROM IN/PRE/POST
+   4. EXPRESSION TREE (WITH EVALUATION!) & RECONSTRUCTION
    ========================================================= */
-function buildFromPostfix(tokens: string[]): TreeNodeData | null {
-  const stack: TreeNodeData[] = [];
-  let seq = 0;
-  for (const t of tokens) {
-    if (["+", "-", "*", "/", "^"].includes(t)) {
-      const r = stack.pop();
-      const l = stack.pop();
-      if (!l || !r) return null;
-      stack.push({ id: `ex-${seq++}`, label: t, left: l, right: r });
-    } else {
-      stack.push({ id: `ex-${seq++}`, label: t, left: null, right: null });
-    }
-  }
-  return stack.length === 1 ? stack[0] : null;
-}
-
-function buildFromPrefix(tokens: string[]): TreeNodeData | null {
-  const stack: TreeNodeData[] = [];
-  let seq = 0;
-  for (let i = tokens.length - 1; i >= 0; i--) {
-    const t = tokens[i];
-    if (["+", "-", "*", "/", "^"].includes(t)) {
-      const l = stack.pop();
-      const r = stack.pop();
-      if (!l || !r) return null;
-      stack.push({ id: `ex-${seq++}`, label: t, left: l, right: r });
-    } else {
-      stack.push({ id: `ex-${seq++}`, label: t, left: null, right: null });
-    }
-  }
-  return stack.length === 1 ? stack[0] : null;
-}
-
-function infixToPostfixTokens(expr: string): string[] {
-  const tokens = expr.replace(/\s+/g, "").match(/[A-Za-z0-9]+|[+\-*/^()]/g) ?? [];
-  const prec: Record<string, number> = { "+": 1, "-": 1, "*": 2, "/": 2, "^": 3 };
-  const out: string[] = [];
-  const ops: string[] = [];
-  for (const t of tokens) {
-    if (/^[A-Za-z0-9]+$/.test(t)) out.push(t);
-    else if (t === "(") ops.push(t);
-    else if (t === ")") {
-      while (ops.length && ops[ops.length - 1] !== "(") out.push(ops.pop()!);
-      ops.pop();
-    } else {
-      while (ops.length && ops[ops.length - 1] !== "(" && (prec[ops[ops.length - 1]] ?? 0) >= (prec[t] ?? 0)) {
-        out.push(ops.pop()!);
-      }
-      ops.push(t);
-    }
-  }
-  while (ops.length) out.push(ops.pop()!);
-  return out;
-}
-
-function reconstructTree(inArr: string[], otherArr: string[], mode: "pre" | "post"): { root: TreeNodeData | null; error?: string } {
-  if (!inArr.length || inArr.length !== otherArr.length) {
-    return { root: null, error: "In-order and Pre/Post-order must have equal non-empty token counts." };
-  }
-  let seq = 0;
-  function build(ino: string[], oth: string[]): TreeNodeData | null {
-    if (!ino.length) return null;
-    const rootVal = mode === "pre" ? oth[0] : oth[oth.length - 1];
-    const idx = ino.indexOf(rootVal);
-    if (idx === -1) throw new Error(`Token "${rootVal}" missing in In-order slice.`);
-    const leftIn = ino.slice(0, idx);
-    const rightIn = ino.slice(idx + 1);
-    const leftOth = mode === "pre" ? oth.slice(1, 1 + leftIn.length) : oth.slice(0, leftIn.length);
-    const rightOth = mode === "pre" ? oth.slice(1 + leftIn.length) : oth.slice(leftIn.length, oth.length - 1);
-    return {
-      id: `rec-${seq++}-${rootVal}`,
-      label: rootVal,
-      left: build(leftIn, leftOth),
-      right: build(rightIn, rightOth),
-    };
-  }
-  try {
-    return { root: build(inArr, otherArr) };
-  } catch (e) {
-    return { root: null, error: e instanceof Error ? e.message : "Invalid traversals." };
-  }
-}
-
 function getReadings(n: TreeNodeData | null) {
   const pre: string[] = [];
   const ino: string[] = [];
@@ -1079,25 +1446,37 @@ function ExpressionTreeVisualizer() {
   const { tree, errorMsg } = useMemo(() => {
     if (mode === "expr") {
       if (exprFormat === "infix") {
-        const pf = infixToPostfixTokens(exprText);
-        const r = buildFromPostfix(pf);
-        return { tree: r, errorMsg: r ? "" : "Invalid infix expression. Check parentheses and operators." };
+        const checked = infixToPostfixChecked(exprText);
+        if (checked.error) return { tree: null, errorMsg: checked.error };
+        const r = buildExprTreeFromPostfix(checked.tokens);
+        return {
+          tree: r,
+          errorMsg: r ? "" : "Invalid infix expression. Check operator/operand placement.",
+        };
       }
       const toks = exprText.trim().split(/\s+/).filter(Boolean);
-      const r = exprFormat === "postfix" ? buildFromPostfix(toks) : buildFromPrefix(toks);
+      const r =
+        exprFormat === "postfix"
+          ? buildExprTreeFromPostfix(toks)
+          : buildExprTreeFromPrefix(toks);
       return {
         tree: r,
-        errorMsg: r ? "" : `Invalid ${exprFormat} expression. Separate tokens by spaces (e.g. A B + C *).`,
+        errorMsg: r
+          ? ""
+          : `Invalid ${exprFormat} expression. Separate tokens by spaces (e.g. A B + C *).`,
       };
-    } else {
-      const inToks = inOrderStr.trim().split(/[\s,]+/).filter(Boolean);
-      const othToks = otherStr.trim().split(/[\s,]+/).filter(Boolean);
-      const res = reconstructTree(inToks, othToks, otherType);
-      return { tree: res.root, errorMsg: res.error ?? "" };
     }
+    const inToks = inOrderStr.trim().split(/[\s,]+/).filter(Boolean);
+    const othToks = otherStr.trim().split(/[\s,]+/).filter(Boolean);
+    const res = reconstructBinaryTree(inToks, othToks, otherType);
+    return { tree: res.root, errorMsg: res.error ?? "" };
   }, [mode, exprFormat, exprText, inOrderStr, otherStr, otherType]);
 
   const readings = useMemo(() => getReadings(tree), [tree]);
+  const evaluation = useMemo(
+    () => (mode === "expr" ? evaluateExprTree(tree) : { value: null, steps: [] }),
+    [mode, tree]
+  );
 
   return (
     <div className="space-y-4">
@@ -1106,23 +1485,52 @@ function ExpressionTreeVisualizer() {
         value={mode}
         onChange={setMode}
         options={[
-          { id: "expr", label: "Build from Infix / Prefix / Postfix" },
+          { id: "expr", label: "Build & Evaluate Expression Tree" },
           { id: "reconstruct", label: "Create from In-order + Pre/Post-order" },
         ]}
       />
 
       <VisualizerWorkspace
-        badge={mode === "expr" ? exprFormat.toUpperCase() : `In + ${otherType.toUpperCase()}`}
+        badge={
+          evaluation.value !== null
+            ? `Result = ${evaluation.value}`
+            : mode === "expr"
+            ? exprFormat.toUpperCase()
+            : `In + ${otherType.toUpperCase()}`
+        }
         statusText={
           errorMsg
             ? errorMsg
+            : evaluation.error
+            ? `Evaluation error: ${evaluation.error}`
             : mode === "expr"
-            ? "Operators sit at internal nodes; operands sit at leaves."
+            ? evaluation.value !== null
+              ? `Evaluated expression tree bottom-up -> result = ${evaluation.value}.`
+              : "Operators sit at internal nodes; operands sit at leaves. Use numbers to evaluate."
             : "Picked root from Pre/Post-order and split In-order into Left & Right subtrees."
         }
+        statusTone={errorMsg || evaluation.error ? "error" : "default"}
         stage={
           <div className="space-y-4">
             <TreeSvgCanvas root={tree} />
+
+            {evaluation.value !== null && evaluation.steps.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#4cc38a]/35 bg-[#4cc38a]/10 px-3 py-2 font-mono text-xs">
+                <div className="flex flex-wrap items-center gap-2 text-[#a1a1a6]">
+                  <span className="font-medium text-[#4cc38a]">Post-order eval:</span>
+                  {evaluation.steps.map((st, idx) => (
+                    <span
+                      key={idx}
+                      className="rounded border border-[#ededed]/[0.08] bg-[#141415] px-2 py-0.5 text-[#ededed]"
+                    >
+                      {st}
+                    </span>
+                  ))}
+                </div>
+                <span className="font-semibold text-[#4cc38a]">= {evaluation.value}</span>
+              </div>
+            )}
+
             {tree && (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <div className="rounded-lg border border-[#60a5fa]/35 bg-[#60a5fa]/10 px-3 py-2">
@@ -1144,7 +1552,11 @@ function ExpressionTreeVisualizer() {
         inspector={
           mode === "expr" ? (
             <>
-              <InspectorBlock highlight title="Input Expression" description="Choose format and type your own mathematical expression.">
+              <InspectorBlock
+                highlight
+                title="Input Expression"
+                description="Supports +, -, *, /, ^ (right-associative). Enter numbers to evaluate automatically."
+              >
                 <div className="mb-2">
                   <StudioSelect
                     value={exprFormat}
@@ -1152,7 +1564,11 @@ function ExpressionTreeVisualizer() {
                       const f = e.target.value as "infix" | "postfix" | "prefix";
                       setExprFormat(f);
                       setExprText(
-                        f === "infix" ? "(A + B) * (C - D)" : f === "postfix" ? "A B + C D - *" : "* + A B - C D"
+                        f === "infix"
+                          ? "(A + B) * (C - D)"
+                          : f === "postfix"
+                          ? "A B + C D - *"
+                          : "* + A B - C D"
                       );
                     }}
                   >
@@ -1168,12 +1584,18 @@ function ExpressionTreeVisualizer() {
                 <PresetRow
                   presets={[
                     { id: "e1", label: "(A+B)*(C-D)" },
-                    { id: "e2", label: "A+B*C" },
-                    { id: "e3", label: "(5+3)*2" },
+                    { id: "e2", label: "2^3^2 (Right-Assoc)" },
+                    { id: "e3", label: "(5+3)*2 (=16)" },
                   ]}
                   onSelect={(id) => {
                     setExprFormat("infix");
-                    setExprText(id === "e1" ? "(A + B) * (C - D)" : id === "e2" ? "A + B * C" : "(5 + 3) * 2");
+                    setExprText(
+                      id === "e1"
+                        ? "(A + B) * (C - D)"
+                        : id === "e2"
+                        ? "2 ^ 3 ^ 2"
+                        : "(5 + 3) * 2"
+                    );
                   }}
                 />
               </InspectorBlock>
@@ -1188,7 +1610,10 @@ function ExpressionTreeVisualizer() {
                 <div className="space-y-2">
                   <div>
                     <label className="mb-1 block text-xs text-[#a1a1a6]">In-order traversal</label>
-                    <StudioInput value={inOrderStr} onChange={(e) => setInOrderStr(e.target.value)} />
+                    <StudioInput
+                      value={inOrderStr}
+                      onChange={(e) => setInOrderStr(e.target.value)}
+                    />
                   </div>
                   <div>
                     <label className="mb-1 block text-xs text-[#a1a1a6]">Pair with</label>
@@ -1217,13 +1642,18 @@ function ExpressionTreeVisualizer() {
                 <PresetRow
                   presets={[
                     { id: "letters", label: "Letters (A..F)" },
-                    { id: "expr", label: "Expr (* + A B C)" },
+                    { id: "expr1", label: "Expr (* + A B C)" },
+                    { id: "expr2", label: "Expr (+ A * B C)" },
                   ]}
                   onSelect={(id) => {
                     if (id === "letters") {
                       setInOrderStr("D B E A F C");
                       setOtherType("pre");
                       setOtherStr("A B D E C F");
+                    } else if (id === "expr1") {
+                      setInOrderStr("A + B * C");
+                      setOtherType("pre");
+                      setOtherStr("* + A B C");
                     } else {
                       setInOrderStr("A + B * C");
                       setOtherType("pre");
@@ -1240,9 +1670,18 @@ function ExpressionTreeVisualizer() {
             intuition="An Expression Tree encodes operator precedence without needing parentheses. In-order + Pre-order (or Post-order) uniquely determines any binary tree with distinct nodes."
             keyPoints={[
               "Postfix -> Tree: Scan left-to-right, push operands, pop two when seeing an operator.",
-              "In-order + Pre-order: First item of Pre-order is always Root; split In-order around Root into Left & Right subtrees.",
-              "In-order + Post-order: Last item of Post-order is always Root.",
+              "Exponentiation (^) is right-associative: 2 ^ 3 ^ 2 evaluates as 2 ^ (3 ^ 2) = 512.",
+              "In-order + Pre-order: First item of Pre-order is always Root; split In-order around Root.",
             ]}
+            javaCode={`static double eval(ExprNode n) {
+  if (n.left == null && n.right == null) return Double.parseDouble(n.val);
+  double l = eval(n.left), r = eval(n.right);
+  return switch (n.val) {
+    case "+" -> l + r; case "-" -> l - r;
+    case "*" -> l * r; case "/" -> l / r;
+    default -> Math.pow(l, r);
+  };
+}`}
           />
         }
       />
@@ -1250,7 +1689,7 @@ function ExpressionTreeVisualizer() {
   );
 }
 
-export function renderTreeTopic(topicId: TopicId) {
+export function TreeSectionRouter({ topicId }: { topicId: TopicId }) {
   switch (topicId) {
     case "tree-basics":
       return <TreeBasicsVisualizer />;
