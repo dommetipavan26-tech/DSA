@@ -45,14 +45,15 @@ All six modules compose the same primitives from `src/components/ui/`:
 
 | Primitive | File | Role |
 |---|---|---|
-| `VisualizerWorkspace` | `primitives-21st.tsx` | Two-column shell: animated **stage** on the left, **"User Input & Controls"** inspector on the right, status badge and optional notes. |
+| `VisualizerWorkspace` | `primitives-21st.tsx` | Two-column workbench shell: **stage** on the left, **"Input & controls"** inspector on the right, status badge and optional notes. |
 | `PlaybackDock` | `primitives-21st.tsx` | Reset / Step back / Play-Pause / Step forward buttons, speed slider and colour legend used by all stepped algorithms. |
-| `MorphingPillTabs` | `primitives-21st.tsx` | Animated tab switching (algorithm, traversal mode, heap type, etc.) using a shared `layoutId`. |
-| `ConceptNotesGrid` | `primitives-21st.tsx` | Intuition, key points, time/space complexity table and an optional "View Java Code" disclosure. |
+| `MorphingPillTabs` | `primitives-21st.tsx` | Segmented tab switching (algorithm, traversal mode, heap type, etc.) using a shared `layoutId`. |
+| `ConceptNotesGrid` | `primitives-21st.tsx` | Intuition, key points, time/space complexity table and an optional "View Java code" disclosure. |
+| `HeroSpecimen` | `hero-specimen.tsx` | Interactive Quick Sort trace preview embedded in the Overview split hero. |
 | `StudioInput`, `StudioTextarea`, `StudioSelect`, `StudioBtn`, `PresetRow`, `InspectorBlock` | `input-helpers.tsx` | Consistent, labelled inputs, presets and explanatory callouts. |
-| `MagicCard`, `BorderBeam`, `DotPattern`, `ShimmerButton`, `ClickSpark`, `BorderTrail`, `SlidingNumber`, `TextEffect` | `magic-ui.tsx`, `react-bits.tsx`, `motion-primitives.tsx` | Decorative motion/gradient treatments on cards, hero and docks. |
+| `SlidingNumber`, `AnimatedGroup` | `motion-primitives.tsx` | Tabular step digit transitions and initial grid entrance motion. |
 
-`src/lib/utils.ts` provides the usual `cn()` helper (`clsx` + `tailwind-merge`). `src/index.css` imports Tailwind and defines the custom dark palette, keyframes and the dashboard hero classes.
+`src/lib/utils.ts` provides the usual `cn()` helper (`clsx` + `tailwind-merge`). `src/index.css` imports Tailwind v4 and defines the Graphite & Amber surface/text tokens and focus/scrollbar styling.
 
 ### 2.3 Two interaction models
 
@@ -88,9 +89,9 @@ All six modules compose the same primitives from `src/components/ui/`:
 | 3 — Trees | 4 | `TreeVisualizer.tsx` | Full/complete/perfect checks, BST clone/insert/delete, recursive traversal snapshots, AVL heights/balance factors and LL/RR/LR/RL rotations, expression parsing and reconstruction | SVG tree canvas per step, balance-factor labels, traversal output chips |
 | 4 — Sorting | 5 | `SortingVisualizer.tsx` | One `generateSortSteps` switch (selection, insertion, quick with pivot strategy, merge, heap with min/max) plus merge-tree builder | Colour-coded bars, step narration, SVG divide-and-conquer tree, heap tree |
 | 5 — Search & hashing | 3 | `SearchHashVisualizer.tsx` | Linear/binary search snapshots (`lo`, `mid`, `hi`); division/mid-square/multiplication hashes; chaining, linear/quadratic/double probing, rehashing to next prime, extendible hashing | Index range highlights, comparison counters, hash buckets/slot probes, directory/bucket table |
-| 6 — Graphs | 6 | `GraphVisualizer.tsx` | Shared graph state; edge-list parser; adjacency matrix/list/sparse derivation; BFS queue, DFS stack, Prim/Kruskal with union-find, Dijkstra relaxation, Floyd-Warshall and Warshall triple loops | Interactive SVG graph, frontier/visit colours, edge highlighting, distance/reachability matrices |
+| 6 — Graphs | 7 | `GraphVisualizer.tsx` | Shared graph state; edge-list parser; adjacency matrix/list/sparse derivation; BFS queue, DFS stack, Prim/Kruskal with union-find, Dijkstra relaxation, Floyd-Warshall and Warshall triple loops | Interactive SVG graph, frontier/visit colours, edge highlighting, distance/reachability matrices |
 
-Topic counts: 2 + 8 + 4 + 5 + 3 + 6 = **29**.
+Topic counts: 2 + 8 + 4 + 7 + 5 + 3 = **29**.
 
 ---
 
@@ -101,11 +102,11 @@ Topic counts: 2 + 8 + 4 + 5 + 3 + 6 = **29**.
 | Application shell and routing | **TypeScript (TSX)**, React 19 | Topic state, navigation, filters, module dispatch | `src/App.tsx`, `src/main.tsx` |
 | Algorithm simulations | **TypeScript** (pure functions, interfaces, typed snapshot arrays) | Every algorithm, parser, validator and derived structure | `src/visualizers/*.tsx`, `src/data/syllabus.ts` |
 | UI components and animation | **TSX + `motion/react`** | Reusable workspace, docks, tabs, cards, entrance/exit motion | `src/components/ui/*.tsx` |
-| Styling | **Tailwind CSS v4** + hand-written **CSS** | Dark theme, responsive layout, hero gradient and keyframes | `src/index.css`, utility classes throughout TSX |
-| Graphics | **SVG markup emitted by TSX**; static **SVG** asset | Trees, graphs, charts, icons; favicon | `src/visualizers/*.tsx`, `public/favicon.svg` |
+| Styling | **Tailwind CSS v4** + hand-written **CSS** | Graphite & Amber dark tokens, responsive layout, focus states | `src/index.css`, utility classes throughout TSX |
+| Graphics | **SVG markup emitted by TSX**; static **SVG** asset | Trees, graphs, charts, icons; flat geometric favicon | `src/visualizers/*.tsx`, `public/favicon.svg` |
 | Code samples shown to students | **Java** (text only, inside a template string) | One recursive vs iterative factorial example in the concept notes. It is displayed, never compiled or run. | `src/visualizers/AnalysisVisualizer.tsx` |
 | Build tooling | **TypeScript config**, **JSON**, **Vite plugin API** | Vite 8 + React + Tailwind + `vite-plugin-singlefile`; type checking and lint scripts | `vite.config.ts`, `tsconfig.json`, `package.json`, `package-lock.json`, `.oxlintrc.json` |
-| Output artifact | **Minified JavaScript + CSS inlined into HTML** | One offline-openable `dist/index.html` (≈ 619 KB) | Generated by `npm run build`; not committed |
+| Output artifact | **Minified JavaScript + CSS inlined into HTML** | One offline-openable `dist/index.html` (≈ 609 KB) | Generated by `npm run build`; not committed |
 | Documentation | **Markdown** | Setup, architecture and this report | `README.md`, `docs/REPORT.md` |
 | CI / hosting | **YAML** | Build, typecheck, lint and optionally publish to GitHub Pages (skipped when Pages is not enabled) | `.github/workflows/deploy-pages.yml` |
 | Backend / data | **None** | No server-side language, database, API calls or persistence | — |
@@ -161,5 +162,12 @@ Two ways to use the built app:
 
 1. Extract each algorithm engine into a `src/lib/algorithms/` module with unit tests; the step builders are already pure enough to test directly.
 2. Resolve the 20 lint warnings — mainly split `render*Topic` routers into separate files and derive/reset timeline state outside effects.
-3. Add lazy loading (`React.lazy`) per module to reduce the 619 KB single-file size for hosted deployments, while keeping the current single-file build for offline use as a separate target.
+3. Add lazy loading (`React.lazy`) per module for hosted deployments while preserving the offline single-file build as a separate target.
 4. Add a shortcut/help panel documenting `Ctrl/Cmd + K` and the playback controls for new students.
+
+---
+
+## 7. UI workbench refactor (November 2026)
+
+- **Design system & shell:** Replaced the purple-gradient hero, continuous border/shimmer effects, and duplicate top-bar category links with a Graphite & Amber workbench palette (`#0f0f10` / `#141415` / `#19191b` / `#232325` + `#f59e0b`), `Inter` + `JetBrains Mono` typography, a persistent `256px` desktop syllabus sidebar, and the interactive `HeroSpecimen` Quick Sort preview. Removed unused `magic-ui.tsx` and `react-bits.tsx` wrappers and redrew `public/favicon.svg`.
+- **Stage & chart fixes:** Fixed the vertical whitespace gap inside `VisualizerWorkspace`, separated colliding curve labels and operation cards in `AsymptoticVisualizer`, kept linked-list `NULL` markers aligned on a single horizontal track without wrapping below the list (`1280px` and `1440px`), and preserved glowing node borders across linear, search/hash, tree, and graph visualizers.

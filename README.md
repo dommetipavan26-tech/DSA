@@ -1,57 +1,68 @@
-# DSA Studio — Visual Data Structures & Algorithms Explorer
+# DSA Studio — Interactive Data Structures & Algorithms Workbench
 
-An interactive, student-friendly, zero-login web app for exploring **CSE2001 Data Structures and Algorithms** topics step by step with your own inputs. Everything runs in the browser — no backend, database or account required.
+[![Deploy to GitHub Pages](https://github.com/dommetipavan26-tech/DSA/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/dommetipavan26-tech/DSA/actions/workflows/deploy-pages.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg)](LICENSE)
+
+An interactive, client-side web workbench for exploring **29 Data Structures and Algorithms topics** across 6 syllabus modules with your own inputs. Everything runs locally in the browser with zero backend, database, or login required.
 
 ## Highlights
 
-- **29 interactive visualizers across 6 syllabus modules**, each with live user input, presets and (where it makes sense) Play / Pause / Step Back / Step Forward / Speed controls.
-- **Module 1 — Algorithm Analysis:** Big-O / Ω / Θ / o growth curves; recursion vs iteration call stacks for factorial and matrix transpose.
-- **Module 2 — Linear Structures:** array/list, singly / doubly / circular linked lists, stack + postfix evaluator, queue, deque, priority queue.
-- **Module 3 — Trees:** tree fundamentals and type checks, BST insert/delete/search + traversals, AVL rotations (LL/RR/LR/RL), expression and reconstruction trees.
-- **Module 4 — Sorting:** selection, insertion, quick (four pivot strategies), merge (divide tree + bars), heap (min/max with synchronized heap tree).
-- **Module 5 — Search & Hashing:** linear/binary search, division / mid-square / multiplication hashes, chaining, linear/quadratic probing, double hashing, rehashing and extendible hashing.
-- **Module 6 — Graphs:** graph builder and edge-list parser with matrix/list/sparse views, BFS, DFS, Prim's & Kruskal's MST, Dijkstra, Floyd-Warshall and Warshall's transitive closure.
+- **Graphite & Amber workbench shell:** Persistent `256px` desktop syllabus sidebar with `Ctrl/Cmd + K` quick filtering, mobile drawer navigation, split Overview hero with an interactive Quick Sort trace specimen, and focused per-topic inspector panels.
+- **Interactive controls on every visualizer:** Enter custom arrays, linked lists, matrices, expressions, or edge lists, pick presets, and step through algorithms using **Play / Pause / Step Back / Step Forward / Reset / Speed** controls.
+- **Module 1 — Algorithm Analysis (2 topics):** Interactive Big-O / $\Omega$ / $\Theta$ / $o$ growth curves with live input size $n$; recursion call-stack traces for factorial and matrix transpose.
+- **Module 2 — Linear Structures (8 topics):** Array/List, Singly, Doubly, and Circular Linked Lists with glowing node states, Stack + Postfix Evaluator, Queue, Deque, and Priority Queue.
+- **Module 3 — Trees (4 topics):** Tree fundamentals and Full/Complete/Perfect checks, BST insert/delete/search + traversals, AVL self-balancing rotations (`LL`, `RR`, `LR`, `RL`), and expression/reconstruction trees.
+- **Module 4 — Sorting (5 topics):** Selection, Insertion, Quick Sort (4 pivot modes), Merge Sort (divide-and-conquer tree + bar chart), and Heap Sort (Min/Max heap with live binary heap tree).
+- **Module 5 — Search & Hashing (3 topics):** Linear & Binary Search; Division, Mid-Square, and Multiplication hash functions with Chaining, Linear/Quadratic Probing, Double Hashing, Rehashing, and Extendible Hashing.
+- **Module 6 — Graphs (7 topics):** Custom interactive graph builder (Adjacency Matrix, Adjacency List, Sparse Triplets), BFS, DFS, Prim's & Kruskal's MST, Dijkstra's Shortest Path, Floyd-Warshall, and Warshall's Transitive Closure.
 
-See [`docs/REPORT.md`](docs/REPORT.md) for a detailed explanation of how the visualizers work, the languages used in each segment, and the repository audit.
+See [`docs/REPORT.md`](docs/REPORT.md) for the architecture breakdown, module map, and engineering report.
 
 ## Tech stack
 
 | Layer | Technology |
 |---|---|
-| UI and algorithm logic | TypeScript + React 19 (TSX) |
-| Styling | Tailwind CSS v4 + custom CSS |
-| Animation | `motion/react` |
-| Graphics | SVG generated in TSX, `lucide-react` icons |
-| Build | Vite 8 + `vite-plugin-singlefile` (one offline-ready HTML file) |
-| Quality | TypeScript (`npm run typecheck`), oxlint (`npm run lint`) |
-| Hosting | Vercel or GitHub Pages (GitHub Actions) |
+| UI & algorithm engines | TypeScript + React 19 (TSX) |
+| Styling & typography | Tailwind CSS v4 (`Inter` + `JetBrains Mono`) |
+| Motion | `motion/react` |
+| Graphics & icons | Declarative SVG in TSX, `lucide-react` |
+| Build & bundling | Vite 8 + `vite-plugin-singlefile` (offline-ready single HTML) |
+| Quality & CI | `tsc --noEmit`, `oxlint`, GitHub Actions |
+| Hosting | GitHub Pages or Vercel |
 
 ## Project structure
 
 ```text
 .
-├── index.html                 # Vite source template (not the built app)
-├── public/favicon.svg         # Static asset
+├── index.html                           # Vite HTML entry & font/theme metadata
+├── public/favicon.svg                   # Flat geometric brand icon
 ├── src/
-│   ├── main.tsx               # React entry point
-│   ├── App.tsx                # Shell, navigation and category router
-│   ├── index.css              # Tailwind import, theme and hero styles
-│   ├── data/syllabus.ts       # Topic catalogue and type definitions
-│   ├── lib/utils.ts           # cn() class-name helper
-│   ├── components/ui/         # Shared workspace, inputs, tabs, playback, effects
-│   └── visualizers/           # Six module-level visualizer implementations
-├── docs/REPORT.md             # Architecture, languages and audit report
-├── vite.config.ts             # React + Tailwind + single-file build config
-└── .github/workflows/         # GitHub Pages deployment workflow
+│   ├── main.tsx                         # React entry point
+│   ├── App.tsx                          # Workbench shell, sidebar & topic router
+│   ├── index.css                        # Tailwind import & Graphite/Amber tokens
+│   ├── data/syllabus.ts                 # 29-topic syllabus catalog & types
+│   ├── lib/utils.ts                     # cn() class-merging utility
+│   ├── components/ui/
+│   │   ├── hero-specimen.tsx            # Interactive Quick Sort overview preview
+│   │   ├── input-helpers.tsx            # Studio inputs, selects, buttons & presets
+│   │   ├── motion-primitives.tsx        # SlidingNumber & AnimatedGroup
+│   │   └── primitives-21st.tsx          # VisualizerWorkspace, PlaybackDock, tabs & notes
+│   └── visualizers/                     # Six module-level visualizer implementations
+├── docs/REPORT.md                       # Architecture, languages & audit report
+├── .github/workflows/deploy-pages.yml   # CI checks & GitHub Pages deployment
+├── .editorconfig                        # Formatting defaults
+├── .oxlintrc.json                       # Oxlint configuration
+├── tsconfig.json                        # Strict TypeScript configuration
+└── vite.config.ts                       # Vite + Tailwind + singlefile config
 ```
 
 ## Getting started
 
-Requires Node.js 22 or newer.
+Requires **Node.js 22** or newer.
 
 ```bash
-npm ci        # or: npm install
-npm run dev   # http://localhost:5173
+npm ci        # install locked dependencies
+npm run dev   # start dev server at http://localhost:5173
 ```
 
 ## Scripts
@@ -59,17 +70,17 @@ npm run dev   # http://localhost:5173
 | Command | Description |
 |---|---|
 | `npm run dev` | Start the Vite development server. |
-| `npm run build` | Produce the self-contained production site in `dist/index.html`. |
-| `npm run preview` | Serve `dist/` locally to check the production build. |
-| `npm run typecheck` | Run the TypeScript compiler with no emit. |
-| `npm run lint` | Lint `src/` and the Vite config with oxlint. |
-| `npm run check` | Run typecheck and lint together. |
+| `npm run build` | Emit the self-contained production bundle in `dist/index.html`. |
+| `npm run preview` | Serve `dist/` locally to inspect the production build. |
+| `npm run typecheck` | Run strict TypeScript typechecking (`tsc --noEmit`). |
+| `npm run lint` | Lint `src/` and `vite.config.ts` with `oxlint`. |
+| `npm run check` | Run `typecheck` and `lint` together. |
 
-## Deployment / offline use
+## Deployment & offline use
 
-- **GitHub Pages:** first enable **Settings → Pages → Source: GitHub Actions**. Pushes to `main` then run the workflow, which checks, builds and publishes `dist/`. Until Pages is enabled, the workflow still checks and builds but skips the deployment step instead of failing.
-- **Offline:** run `npm run build`, then double-click `dist/index.html`. JavaScript and CSS are inlined, so it works without a server. `dist/` is generated and intentionally not tracked.
+- **GitHub Pages:** Enable **Settings → Pages → Source: GitHub Actions**. Every push to `main` runs `npm ci`, `npm run check`, `npm run build`, and deploys `dist/`. Pull requests to `main` run the check and build steps automatically.
+- **Offline single-file bundle:** Run `npm run build` and open `dist/index.html` directly in any browser — all JS and CSS are inlined by `vite-plugin-singlefile`.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) — Copyright (c) 2026 Pavan Dommeti
